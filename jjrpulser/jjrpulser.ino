@@ -7,10 +7,55 @@ PinBouncer hotBouncer(HOT_PIN_NUMBER, "Hot");
 Blinker greenBlinker(GREEN_LED_PIN_NUMBER);
 Blinker redBlinker(RED_LED_PIN_NUMBER);
 
-void processBouncer(PinBouncer &pb, Blinker &bl)
+void processConsoleInput()
+{
+    if (Serial.available() <= 0)
+        return;
+
+#define SWITCHLED(color, mode) \
+      Serial.printf("Switch "#color" led to "#mode" mode\r\n"); \
+      color##Blinker.setMode(Blinker::mode); \
+      break;
+
+    int byte = Serial.read();
+    switch(byte)
+    {
+    case '0':
+        SWITCHLED(green, Off)
+
+    case '1':
+        SWITCHLED(green, Work)
+
+    case '2':
+        SWITCHLED(green, Data)
+
+    case '3':
+        SWITCHLED(green, Setup)
+
+    case '4':
+        SWITCHLED(green, Error)
+
+    case 'g':
+        SWITCHLED(red, Off)
+
+    case 'a':
+        SWITCHLED(red, Work)
+
+    case 's':
+        SWITCHLED(red, Data)
+
+    case 'd':
+        SWITCHLED(red, Setup)
+
+    case 'f':
+        SWITCHLED(red, Error)
+    }
+#undef SWITCHLED
+}
+
+void processBouncer(PinBouncer &pb)
 {
     pb.work();
-    bl.work();
 
     if (!pb.stable())
         return;
@@ -18,23 +63,16 @@ void processBouncer(PinBouncer &pb, Blinker &bl)
     if (!pb.newValue())
         return;
 
-    if (pb.value() == LOW)
-    {
-        Blinker::Mode m = (Blinker::Mode)((int)bl.mode() + 1);
-        if (m == Blinker::MaxMode)
-            m = Blinker::Off;
-
-        bl.setMode(m);
-    }
-
     Serial.printf("%s: %d\n", pb.name().c_str(), pb.value());
     pb.resetNewValue();
 }
 
 void setup()
 {
-    Serial.begin(115200);
-    Serial.println("JJR Pulser Setup");
+    Serial.begin(74880);
+    Serial.flush();
+    Serial.printf("\r\nJJR Pulser Setup\r\n");
+    Serial.flush();
 
     coldBouncer.setup();
     hotBouncer.setup();
@@ -48,8 +86,13 @@ void setup()
 
 void loop()
 {
-    processBouncer(coldBouncer, greenBlinker);
-    processBouncer(hotBouncer, redBlinker);
+    processConsoleInput();
+
+    greenBlinker.work();
+    redBlinker.work();
+
+    processBouncer(coldBouncer);
+    processBouncer(hotBouncer);
 
     // delay(50);
 }
