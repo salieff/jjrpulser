@@ -1,5 +1,6 @@
 #include "bouncer.h"
 #include "blinker.h"
+#include "storage.h"
 
 PinBouncer coldBouncer(COLD_PIN_NUMBER, "Cold");
 PinBouncer hotBouncer(HOT_PIN_NUMBER, "Hot");
@@ -79,6 +80,8 @@ void setup()
 
     greenBlinker.setup();
     redBlinker.setup();
+
+    DataStorage::Instance().setup("SSID", "Password");
 
     greenBlinker.setMode(Blinker::Data);
     redBlinker.setMode(Blinker::Setup);
