@@ -59,7 +59,7 @@ Blinker::Mode Blinker::mode() const
 
 void Blinker::setMode(Mode m)
 {
-    if (m_currentMode = m)
+    if (m_currentMode == m)
         return;
 
     m_fullTimestamp = m_lastTimestamp = millis();

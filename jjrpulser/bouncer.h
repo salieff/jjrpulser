@@ -10,7 +10,7 @@
 
 class PinBouncer {
 public:
-    PinBouncer(uint8_t p, std::string n, unsigned long t = 1000);
+    PinBouncer(uint8_t p, std::string n, unsigned long t = 500);
 
     void setup();
     void work();

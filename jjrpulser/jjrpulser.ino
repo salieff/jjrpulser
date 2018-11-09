@@ -51,22 +51,34 @@ void processConsoleInput()
 
     case 'f':
         SWITCHLED(red, Error)
+
+    case 'c':
+        Serial.println("Emulate COLD signal");
+        DataStorage::Instance().incrementCounters(true, false);
+        break;
+
+    case 'h':
+        Serial.println("Emulate HOT signal");
+        DataStorage::Instance().incrementCounters(false, true);
+        break;
     }
 #undef SWITCHLED
 }
 
-void processBouncer(PinBouncer &pb)
+bool processBouncer(PinBouncer &pb)
 {
     pb.work();
 
     if (!pb.stable())
-        return;
+        return false;
 
     if (!pb.newValue())
-        return;
+        return false;
 
     Serial.printf("%s: %d\n", pb.name().c_str(), pb.value());
     pb.resetNewValue();
+
+    return pb.value() == LOW;
 }
 
 void setup()
@@ -74,6 +86,8 @@ void setup()
     Serial.begin(74880);
     Serial.flush();
     Serial.printf("\r\nJJR Pulser Setup\r\n");
+    Serial.print("MAC: ");
+    Serial.println(WiFi.macAddress());
     Serial.flush();
 
     coldBouncer.setup();
@@ -92,8 +106,11 @@ void loop()
     greenBlinker.work();
     redBlinker.work();
 
-    processBouncer(coldBouncer);
-    processBouncer(hotBouncer);
+    bool coldInc = processBouncer(coldBouncer);
+    bool hotInc = processBouncer(hotBouncer);
+
+    if (coldInc || hotInc)
+        DataStorage::Instance().incrementCounters(coldInc, hotInc);
 
     // delay(50);
 }

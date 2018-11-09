@@ -3,6 +3,16 @@
 Blinker * DataStorage::m_greenLed = NULL;
 Blinker * DataStorage::m_redLed = NULL;
 
+DataStorage::DataStorage()
+    : m_coldWaterCouner(0)
+    , m_hotWaterCouner(0)
+{
+}
+
+DataStorage::~DataStorage()
+{
+}
+
 DataStorage & DataStorage::Instance()
 {
     static DataStorage d;
@@ -28,6 +38,49 @@ void DataStorage::setup(const char *s, const char *p, Blinker *gb, Blinker *rb)
 
     m_greenLed->setMode(Blinker::Data);
     m_redLed->setMode(Blinker::Off);
+
+    m_httpRequest.setTimeout(180);
+    m_httpRequest.onReadyStateChange(DataStorage::onHTTPStateChanged);
+}
+
+void DataStorage::incrementCounters(bool cold, bool hot)
+{
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("[DataStorage::incrementCounters] No Wi-Fi connections available, can't send data");
+        return;
+    }
+
+    Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data\r\n", millis());
+
+    /*
+        HTTPClient http;
+        http.begin("http://salieff.phantomazz.me:1331/jjrpulser/text.sh");
+
+        int httpCode = http.GET();
+        if (httpCode < 0)
+        {
+            Serial.printf("[DataStorage::incrementCounters %lu] HTTPClient error: %s\r\n", millis(), HTTPClient::errorToString(httpCode).c_str());
+        }
+        else if (httpCode != HTTP_CODE_OK)
+        {
+            Serial.printf("[DataStorage::incrementCounters %lu] HTTP GET code: %d\r\n", millis(), httpCode);
+        }
+        else
+        {
+            Serial.printf("[DataStorage::incrementCounters %lu] OK, got HTTP response\r\n", millis());
+
+            String payload = http.getString();
+            Serial.println(payload);
+        }
+
+        http.end();
+    */
+
+    if (!m_httpRequest.open(asyncHTTPrequest::HTTPmethodGET, "http://salieff.phantomazz.me:1331/jjrpulser/text.sh"))
+        Serial.printf("[DataStorage::incrementCounters %lu] Error while opening HTTP request\r\n", millis());
+    else
+        m_httpRequest.send();
 }
 
 void DataStorage::onConnected(const WiFiEventStationModeConnected &e)
@@ -108,4 +161,9 @@ const char * DataStorage::printDisconnectReason(WiFiDisconnectReason r)
 #undef PRINT_DISCONNECT_REASON
 
     return "Unresolved disconnect reason";
+}
+
+void DataStorage::onHTTPStateChanged(void *, asyncHTTPrequest *, int readyState)
+{
+    Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP GET readyState: %d\r\n", millis(), readyState);
 }
