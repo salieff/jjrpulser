@@ -23,8 +23,11 @@ asyncHTTPrequest::asyncHTTPrequest()
 }
 
 //**************************************************************************************************************
-asyncHTTPrequest::~asyncHTTPrequest() {
+asyncHTTPrequest::~asyncHTTPrequest()
+{
     if(_client) _client->close(true);
+
+    delete _client;
     delete _URL;
     delete _headers;
     delete _request;
@@ -88,13 +91,13 @@ void    asyncHTTPrequest::onReadyStateChange(readyStateChangeCB cb, void* arg) {
 }
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::setTimeout(int seconds) {
+void asyncHTTPrequest::setTimeout(int seconds) {
     DEBUG_HTTP("setTimeout(%d)\r\n", seconds);
     _timeout = seconds;
 }
 
 //**************************************************************************************************************
-bool	asyncHTTPrequest::send() {
+bool asyncHTTPrequest::send() {
     DEBUG_HTTP("send()\r\n");
     if( ! _buildRequest()) return false;
     _send();
@@ -112,7 +115,7 @@ bool    asyncHTTPrequest::send(String body) {
 }
 
 //**************************************************************************************************************
-bool	asyncHTTPrequest::send(const char* body) {
+bool asyncHTTPrequest::send(const char* body) {
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",body, strlen(body));
     _addHeader("Content-Length", String(strlen(body)).c_str());
     if( ! _buildRequest()) return false;
@@ -122,7 +125,7 @@ bool	asyncHTTPrequest::send(const char* body) {
 }
 
 //**************************************************************************************************************
-bool	asyncHTTPrequest::send(const uint8_t* body, size_t len) {
+bool asyncHTTPrequest::send(const uint8_t* body, size_t len) {
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n",(char*)body, len);
     _addHeader("Content-Length", String(len).c_str());
     if( ! _buildRequest()) return false;
@@ -132,7 +135,7 @@ bool	asyncHTTPrequest::send(const uint8_t* body, size_t len) {
 }
 
 //**************************************************************************************************************
-bool	asyncHTTPrequest::send(xbuf* body, size_t len) {
+bool asyncHTTPrequest::send(xbuf* body, size_t len) {
     DEBUG_HTTP("send(char*) %s.16... (%d)\r\n", body->peekString(16).c_str(), len);
     _addHeader("Content-Length", String(len).c_str());
     if( ! _buildRequest()) return false;
@@ -148,17 +151,17 @@ void    asyncHTTPrequest::abort() {
     _client->abort();
 }
 //**************************************************************************************************************
-int		asyncHTTPrequest::readyState() {
+int  asyncHTTPrequest::readyState() {
     return _readyState;
 }
 
 //**************************************************************************************************************
-int	asyncHTTPrequest::responseHTTPcode() {
+int asyncHTTPrequest::responseHTTPcode() {
     return _HTTPcode;
 }
 
 //**************************************************************************************************************
-String	asyncHTTPrequest::responseText() {
+String asyncHTTPrequest::responseText() {
     DEBUG_HTTP("responseText() ");
     if( ! _response || _readyState < readyStateLoading || ! available()) {
         DEBUG_HTTP("responseText() no data\r\n");
@@ -203,13 +206,13 @@ size_t asyncHTTPrequest::available() {
 }
 
 //**************************************************************************************************************
-size_t	asyncHTTPrequest::responseLength() {
+size_t asyncHTTPrequest::responseLength() {
     if(_readyState < readyStateLoading) return 0;
     return _contentLength;
 }
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::onData(onDataCB cb, void* arg) {
+void asyncHTTPrequest::onData(onDataCB cb, void* arg) {
     DEBUG_HTTP("onData() CB set\r\n");
     _onDataCB = cb;
     _onDataCBarg = arg;
@@ -604,21 +607,21 @@ bool  asyncHTTPrequest::_collectHeaders() {
 ______________________________________________________________________________________________________________*/
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::setReqHeader(const char* name, const char* value) {
+void asyncHTTPrequest::setReqHeader(const char* name, const char* value) {
     if(_readyState <= readyStateOpened && _headers) {
         _addHeader(name, value);
     }
 }
 
 //**************************************************************************************************************
-void	asyncHTTPrequest::setReqHeader(const char* name, int32_t value) {
+void asyncHTTPrequest::setReqHeader(const char* name, int32_t value) {
     if(_readyState <= readyStateOpened && _headers) {
         setReqHeader(name, String(value).c_str());
     }
 }
 
 //**************************************************************************************************************
-int		asyncHTTPrequest::respHeaderCount() {
+int  asyncHTTPrequest::respHeaderCount() {
     if(_readyState < readyStateHdrsRecvd) return 0;
     int count = 0;
     header* hdr = _headers;
@@ -654,7 +657,7 @@ char*   asyncHTTPrequest::respHeaderValue(int ndx) {
 }
 
 //**************************************************************************************************************
-bool	asyncHTTPrequest::respHeaderExists(const char* name) {
+bool asyncHTTPrequest::respHeaderExists(const char* name) {
     if(_readyState < readyStateHdrsRecvd) return false;
     header* hdr = _getHeader(name);
     if ( ! hdr) return false;

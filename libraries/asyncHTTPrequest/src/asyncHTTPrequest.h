@@ -24,9 +24,9 @@
 #endif
 
 #ifdef DEBUG_IOTA_HTTP
-#define DEBUG_IOTA_HTTP_SET true
+    #define DEBUG_IOTA_HTTP_SET true
 #else
-#define DEBUG_IOTA_HTTP_SET false
+    #define DEBUG_IOTA_HTTP_SET false
 #endif
 
 #include <Arduino.h>
@@ -35,14 +35,14 @@
 #include <xbuf.h>
 
 #ifdef DEBUG_IOTA_HTTP
-#define DEBUG_HTTP(format,...)  if(_debug){\
+    #define DEBUG_HTTP(format,...)  if(_debug){\
                                         DEBUG_IOTA_PORT.printf("Debug(%3d): ", millis()-_requestStartTime);\
                                         DEBUG_IOTA_PORT.printf(format,##__VA_ARGS__);}
 #else
-#define DEBUG_HTTP(format,...)
+    #define DEBUG_HTTP(format,...)
 #endif
 
-#define DEFAULT_RX_TIMEOUT 3                    // Seconds for timeout
+#define DEFAULT_RX_TIMEOUT 180 // Seconds for timeout
 
 #define HTTPCODE_CONNECTION_REFUSED  (-1)
 #define HTTPCODE_SEND_HEADER_FAILED  (-2)
@@ -59,15 +59,18 @@
 class asyncHTTPrequest {
 
     struct header {
-        header*	 	next;
-        char*			name;
-        char*			value;
+        header *next;
+        char   *name;
+        char   *value;
+
         header():
             next(nullptr),
             name(nullptr),
             value(nullptr)
         {};
-        ~header() {
+
+        ~header()
+        {
             delete[] name;
             delete[] value;
             delete next;
@@ -75,14 +78,15 @@ class asyncHTTPrequest {
     };
 
     struct  URL {
-        char*   scheme;
-        char*   user;
-        char*   pwd;
-        char*   host;
-        int     port;
-        char*   path;
-        char*   query;
-        char*   fragment;
+        char *scheme;
+        char *user;
+        char *pwd;
+        char *host;
+        int   port;
+        char *path;
+        char *query;
+        char *fragment;
+
         URL():
             scheme(nullptr),
             user(nullptr),
@@ -93,7 +97,9 @@ class asyncHTTPrequest {
             query(nullptr),
             fragment(nullptr)
         {};
-        ~URL() {
+
+        ~URL()
+        {
             delete[] scheme;
             delete[] user;
             delete[] pwd;
@@ -133,36 +139,36 @@ public:
     void    setDebug(bool);                                         // Turn debug message on/off
     bool    debug();                                                // is debug on or off?
 
-    bool    open(httpMethods method, const char* URL);        // Initiate a request
-    void    onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
+    bool    open(httpMethods method, const char *URL);        // Initiate a request
+    void    onReadyStateChange(readyStateChangeCB, void *arg = 0);  // Optional event handler for ready state change
     // or you can simply poll readyState()
     void    setTimeout(int);                                        // overide default timeout (seconds)
 
-    void    setReqHeader(const char* name, const char* value);      // add a request header
-    void    setReqHeader(const char* name, int32_t value);          // overload to use integer value
+    void    setReqHeader(const char *name, const char *value);      // add a request header
+    void    setReqHeader(const char *name, int32_t value);          // overload to use integer value
 
     bool    send();                                                 // Send the request (GET)
     bool    send(String body);                                      // Send the request (POST)
-    bool    send(const char* body);                                 // Send the request (POST)
-    bool    send(const uint8_t* buffer, size_t len);                // Send the request (POST) (binary data?)
-    bool    send(xbuf* body, size_t len);                            // Send the request (POST) data in an xbuf
+    bool    send(const char *body);                                 // Send the request (POST)
+    bool    send(const uint8_t *buffer, size_t len);                // Send the request (POST) (binary data?)
+    bool    send(xbuf *body, size_t len);                            // Send the request (POST) data in an xbuf
     void    abort();                                                // Abort the current operation
 
     int     readyState();                                           // Return the ready state
 
     int     respHeaderCount();                                      // Retrieve count of response headers
-    char*   respHeaderName(int index);                              // Return header name by index
-    char*   respHeaderValue(int index);                             // Return header value by index
-    char*   respHeaderValue(const char* name);                      // Return header value by name
-    bool    respHeaderExists(const char* name);                     // Does header exist by name?
+    char *  respHeaderName(int index);                              // Return header name by index
+    char *  respHeaderValue(int index);                             // Return header value by index
+    char *  respHeaderValue(const char *name);                      // Return header value by name
+    bool    respHeaderExists(const char *name);                     // Does header exist by name?
     String  headers();                                              // Return all headers as String
 
-    void    onData(onDataCB, void* arg = 0);                        // Notify when min data is available
+    void    onData(onDataCB, void *arg = 0);                        // Notify when min data is available
     size_t  available();                                            // response available
     size_t  responseLength();                                       // indicated response length or sum of chunks to date
     int     responseHTTPcode();                                     // HTTP response code or (negative) error code
     String  responseText();                                         // response (whole* or partial* as string)
-    size_t  responseRead(uint8_t* buffer, size_t len);              // Read response into buffer
+    size_t  responseRead(uint8_t *buffer, size_t len);              // Read response into buffer
     uint32_t elapsedTime();                                         // Elapsed time of in progress transaction or last completed (ms)                                                                // Note, caller takes posession, responsible for delete
 //___________________________________________________________________________________________________________________________________
 
@@ -171,51 +177,52 @@ private:
     httpMethods _HTTPmethod;
     readyStates _readyState;
 
-    int16_t         _HTTPcode;                  // HTTP response code or (negative) exception code
-    bool            _chunked;                   // Processing chunked response
-    bool            _debug;                     // Debug state
-    uint32_t        _timeout;                   // Default or user overide RxTimeout in seconds
-    uint32_t        _lastActivity;              // Time of last activity
-    uint32_t        _requestStartTime;          // Time last open() issued
-    uint32_t        _requestEndTime;            // Time of last disconnect
-    URL*            _URL;                       // -> URL data structure
-    char*           _connectedHost;             // Host when connected
-    int             _connectedPort;             // Port when connected
-    AsyncClient*    _client;                    // ESPAsyncTCP AsyncClient instance
-    size_t          _contentLength;             // content-length header value or sum of chunk headers
-    size_t          _contentRead;               // number of bytes retrieved by user since last open()
-    readyStateChangeCB  _readyStateChangeCB;    // optional callback for readyState change
-    void*           _readyStateChangeCBarg;     // associated user argument
-    onDataCB        _onDataCB;                  // optional callback when data received
-    void*           _onDataCBarg;               // associated user argument
+    int16_t            _HTTPcode;              // HTTP response code or (negative) exception code
+    bool               _chunked;               // Processing chunked response
+    bool               _debug;                 // Debug state
+    uint32_t           _timeout;               // Default or user overide RxTimeout in seconds
+    uint32_t           _lastActivity;          // Time of last activity
+    uint32_t           _requestStartTime;      // Time last open() issued
+    uint32_t           _requestEndTime;        // Time of last disconnect
+    URL               *_URL;                   // -> URL data structure
+    char              *_connectedHost;         // Host when connected
+    int                _connectedPort;         // Port when connected
+    AsyncClient       *_client;                // ESPAsyncTCP AsyncClient instance
+    size_t             _contentLength;         // content-length header value or sum of chunk headers
+    size_t             _contentRead;           // number of bytes retrieved by user since last open()
+    readyStateChangeCB _readyStateChangeCB;    // optional callback for readyState change
+    void              *_readyStateChangeCBarg; // associated user argument
+    onDataCB           _onDataCB;              // optional callback when data received
+    void              *_onDataCBarg;           // associated user argument
 
     // request and response String buffers and header list (same queue for request and response).
 
-    xbuf*       _request;                       // Tx data buffer
-    xbuf*       _response;                      // Rx data buffer for headers
-    xbuf*       _chunks;                        // First stage for chunked response
-    header*     _headers;                       // request or (readyState > readyStateHdrsRcvd) response headers
+    xbuf   *_request;  // Tx data buffer
+    xbuf   *_response; // Rx data buffer for headers
+    xbuf   *_chunks;   // First stage for chunked response
+    header *_headers;  // request or (readyState > readyStateHdrsRcvd) response headers
 
     // Protected functions
 
-    header*     _addHeader(const char*, const char*);
-    header*     _getHeader(const char*);
-    header*     _getHeader(int);
-    bool        _buildRequest();
-    bool        _parseURL(const char*);
-    bool        _parseURL(String);
-    void        _processChunks();
-    bool        _connect();
-    size_t      _send();
-    void        _setReadyState(readyStates);
+    header * _addHeader(const char *, const char *);
+    header * _getHeader(const char *);
+    header * _getHeader(int);
+    bool     _buildRequest();
+    bool     _parseURL(const char *);
+    bool     _parseURL(String);
+    void     _processChunks();
+    bool     _connect();
+    size_t   _send();
+    void     _setReadyState(readyStates);
 
     // callbacks
 
-    void        _onConnect(AsyncClient*);
-    void        _onDisconnect(AsyncClient*);
-    void        _onData(void*, size_t);
-    void        _onError(AsyncClient*, int8_t);
-    void        _onPoll(AsyncClient*);
-    bool        _collectHeaders();
-};
-#endif
+    void _onConnect(AsyncClient *);
+    void _onDisconnect(AsyncClient *);
+    void _onData(void *, size_t);
+    void _onError(AsyncClient *, int8_t);
+    void _onPoll(AsyncClient *);
+    bool _collectHeaders();
+}; // class asyncHTTPrequest
+
+#endif // asyncHTTPrequest_h

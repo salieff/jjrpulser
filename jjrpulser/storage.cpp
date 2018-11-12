@@ -38,54 +38,72 @@ void DataStorage::setup(const char *s, const char *p, Blinker *gb, Blinker *rb)
 
     m_greenLed->setMode(Blinker::Data);
     m_redLed->setMode(Blinker::Off);
+}
 
-    m_httpRequest.setTimeout(180);
-    m_httpRequest.onReadyStateChange(DataStorage::onHTTPStateChanged);
+void DataStorage::work()
+{
+    auto it = m_httpRequestsList.begin();
+    while(it != m_httpRequestsList.end())
+        if ((*it)->readyState() == asyncHTTPrequest::readyStateDone)
+            m_httpRequestsList.erase(it);
+        else
+            ++it;
 }
 
 void DataStorage::incrementCounters(bool cold, bool hot)
 {
+    if (cold)
+        m_coldWaterCouner += WATER_COLD_INCREMENT;
+
+    if (hot)
+        m_hotWaterCouner += WATER_HOT_INCREMENT;
+
+    Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data", millis());
+    
+    if (cold)
+        Serial.printf(" COLD = %u", m_coldWaterCouner);
+
+    if (hot)
+        Serial.printf(" HOT = %u", m_hotWaterCouner);
+
+    Serial.println();
+
     if (WiFi.status() != WL_CONNECTED)
     {
         Serial.println("[DataStorage::incrementCounters] No Wi-Fi connections available, can't send data");
         return;
     }
 
-    Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data\r\n", millis());
+    std::shared_ptr<asyncHTTPrequest> ahr(new asyncHTTPrequest);
+    ahr->setTimeout(180);
+    ahr->onReadyStateChange(DataStorage::globalHTTPStateChanged, this);
 
-    /*
-        HTTPClient http;
-        http.begin("http://salieff.phantomazz.me:1331/jjrpulser/text.sh");
+    m_httpRequestsList.push_back(ahr);
+    Serial.printf("[DataStorage::incrementCounters] requests list size %u\r\n", m_httpRequestsList.size());
 
-        int httpCode = http.GET();
-        if (httpCode < 0)
-        {
-            Serial.printf("[DataStorage::incrementCounters %lu] HTTPClient error: %s\r\n", millis(), HTTPClient::errorToString(httpCode).c_str());
-        }
-        else if (httpCode != HTTP_CODE_OK)
-        {
-            Serial.printf("[DataStorage::incrementCounters %lu] HTTP GET code: %d\r\n", millis(), httpCode);
-        }
-        else
-        {
-            Serial.printf("[DataStorage::incrementCounters %lu] OK, got HTTP response\r\n", millis());
+    String url = "http://salieff.phantomazz.me:5190/jjrpulser/text.sh?cmd=add_value";
 
-            String payload = http.getString();
-            Serial.println(payload);
-        }
+    if (cold)
+    {
+        url += "&cold=";
+        url += String(m_coldWaterCouner);
+    }
 
-        http.end();
-    */
+    if (hot)
+    {
+        url += "&hot=";
+        url += String(m_hotWaterCouner);
+    }
 
-    if (!m_httpRequest.open(asyncHTTPrequest::HTTPmethodGET, "http://salieff.phantomazz.me:1331/jjrpulser/text.sh"))
+    if (!ahr->open(asyncHTTPrequest::HTTPmethodGET, url.c_str()))
         Serial.printf("[DataStorage::incrementCounters %lu] Error while opening HTTP request\r\n", millis());
     else
-        m_httpRequest.send();
+        ahr->send();
 }
 
 void DataStorage::onConnected(const WiFiEventStationModeConnected &e)
 {
-    Serial.printf("[WIFI] Connected to %s %02X:%02X:%02X:%02X:%02X:%02X ch %u\r\n", e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], e.channel);
+    Serial.printf("[WIFI %lu] Connected to %s %02X:%02X:%02X:%02X:%02X:%02X ch %u\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], e.channel);
 
     m_greenLed->setMode(Blinker::Data);
     m_redLed->setMode(Blinker::Off);
@@ -93,7 +111,7 @@ void DataStorage::onConnected(const WiFiEventStationModeConnected &e)
 
 void DataStorage::onDisconnected(const WiFiEventStationModeDisconnected &e)
 {
-    Serial.printf("[WIFI] Disconnected from %s %02X:%02X:%02X:%02X:%02X:%02X reason %s\r\n", e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], printDisconnectReason(e.reason));
+    Serial.printf("[WIFI %lu] Disconnected from %s %02X:%02X:%02X:%02X:%02X:%02X reason %s\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], printDisconnectReason(e.reason));
 
     m_greenLed->setMode(Blinker::Work);
     m_redLed->setMode(Blinker::Error);
@@ -101,18 +119,18 @@ void DataStorage::onDisconnected(const WiFiEventStationModeDisconnected &e)
 
 void DataStorage::onAuthModeChanged(const WiFiEventStationModeAuthModeChanged &e)
 {
-    Serial.printf("[WIFI] Auth mode changed from %u to %u\r\n", e.oldMode, e.newMode);
+    Serial.printf("[WIFI %lu] Auth mode changed from %u to %u\r\n", millis(), e.oldMode, e.newMode);
 }
 
 void DataStorage::onGotIP(const WiFiEventStationModeGotIP &e)
 {
-    Serial.print("[WIFI] Got IP      ");
+    Serial.printf("[WIFI %lu] Got IP ", millis());
     Serial.println(e.ip);
 
-    Serial.print("           Mask    ");
+    Serial.print("    Mask    ");
     Serial.println(e.mask);
 
-    Serial.print("           Gateway ");
+    Serial.print("    Gateway ");
     Serial.println(e.gw);
 
     m_greenLed->setMode(Blinker::Work);
@@ -121,7 +139,7 @@ void DataStorage::onGotIP(const WiFiEventStationModeGotIP &e)
 
 void DataStorage::onDHCPTimeout(void)
 {
-    Serial.println("[WIFI] DHCP timeout");
+    Serial.printf("[WIFI %lu] DHCP timeout\r\n", millis());
 
     m_greenLed->setMode(Blinker::Work);
     m_redLed->setMode(Blinker::Error);
@@ -163,7 +181,22 @@ const char * DataStorage::printDisconnectReason(WiFiDisconnectReason r)
     return "Unresolved disconnect reason";
 }
 
-void DataStorage::onHTTPStateChanged(void *, asyncHTTPrequest *, int readyState)
+void DataStorage::httpStateChanged(asyncHTTPrequest *r, int readyState)
 {
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP GET readyState: %d\r\n", millis(), readyState);
+
+    if (readyState != asyncHTTPrequest::readyStateDone)
+        return;
+
+    Serial.printf("[DataStorage::onHTTPStateChanged] HTTP Code: %d\r\n", r->responseHTTPcode());
+    if (r->responseHTTPcode() < 0)
+        return;
+
+    Serial.println(r->responseText());
+}
+
+void DataStorage::globalHTTPStateChanged(void *arg, asyncHTTPrequest *r, int readyState)
+{
+    DataStorage *ds = static_cast<DataStorage *>(arg);
+    ds->httpStateChanged(r, readyState);
 }
