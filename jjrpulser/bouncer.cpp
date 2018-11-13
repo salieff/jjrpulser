@@ -1,6 +1,6 @@
 #include "bouncer.h"
 
-PinBouncer::PinBouncer(uint8_t p, std::string n, unsigned long t)
+PinBouncer::PinBouncer(uint8_t p, const char *n, unsigned long t)
     : m_pinNumber(p)
     , m_pinName(n)
     , m_timeout(t)
@@ -65,7 +65,7 @@ int PinBouncer::value() const
     return m_lastPinState;
 }
 
-std::string PinBouncer::name() const
+const char * PinBouncer::name() const
 {
-    return m_pinName;
+    return m_pinName.c_str();
 }

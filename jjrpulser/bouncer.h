@@ -1,16 +1,14 @@
 #ifndef JJR_PULSER_BOUNCER_H
 #define JJR_PULSER_BOUNCER_H
 
-#include <stdint.h>
 #include <Arduino.h>
-#include <string>
 
 #define COLD_PIN_NUMBER 4
 #define HOT_PIN_NUMBER 5
 
 class PinBouncer {
 public:
-    PinBouncer(uint8_t p, std::string n, unsigned long t = 500);
+    PinBouncer(uint8_t p, const char *n, unsigned long t = 500);
 
     void setup();
     void work();
@@ -18,11 +16,11 @@ public:
     bool newValue() const;
     void resetNewValue();
     int value() const;
-    std::string name() const;
+    const char * name() const;
 
 private:
     uint8_t m_pinNumber;
-    std::string m_pinName;
+    String m_pinName;
     unsigned long m_timeout;
     int m_lastPinState;
     int m_lastStableState;

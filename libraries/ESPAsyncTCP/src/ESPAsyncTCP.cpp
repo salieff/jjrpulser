@@ -110,17 +110,25 @@ bool AsyncClient::connect(IPAddress ip, uint16_t port, bool secure) {
 bool AsyncClient::connect(IPAddress ip, uint16_t port) {
 #endif
     if (_pcb) //already connected
+    {
+        Serial.println("AsyncClient::connect error - already connected");
         return false;
+    }
+
     ip_addr_t addr;
     addr.addr = ip;
 #if LWIP_VERSION_MAJOR == 1
     netif* interface = ip_route(&addr);
-    if (!interface) { //no route to host
+    if (!interface)
+    { //no route to host
+        Serial.println("AsyncClient::connect error - no route to host");
         return false;
     }
 #endif
     tcp_pcb* pcb = tcp_new();
-    if (!pcb) { //could not allocate pcb
+    if (!pcb)
+    { //could not allocate pcb
+        Serial.println("AsyncClient::connect error - could not allocate pcb");
         return false;
     }
 
@@ -155,6 +163,8 @@ bool AsyncClient::connect(const char* host, uint16_t port) {
         _connect_port = port;
         return true;
     }
+
+    Serial.printf("AsyncClient::connect error - can't resolve hostname %s (%d)\r\n", host, err);
     return false;
 }
 

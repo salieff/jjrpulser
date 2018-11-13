@@ -1,151 +1,29 @@
 #include "storage.h"
 
-Blinker * DataStorage::m_greenLed = NULL;
-Blinker * DataStorage::m_redLed = NULL;
+namespace DataStorage {
 
-DataStorage::DataStorage()
-    : m_coldWaterCouner(0)
-    , m_hotWaterCouner(0)
-{
-}
+Blinker *m_greenLed = NULL;
+Blinker *m_redLed = NULL;
 
-DataStorage::~DataStorage()
-{
-}
+uint32_t m_coldWaterCounter = 0;
+uint32_t m_hotWaterCounter = 0;
 
-DataStorage & DataStorage::Instance()
-{
-    static DataStorage d;
-    return d;
-}
+WiFiEventHandler m_onConnectedHandler = NULL;
+WiFiEventHandler m_onDisconnectedHandler = NULL;
+WiFiEventHandler m_onAuthModeChangedHandler = NULL;
+WiFiEventHandler m_onGotIPHandler = NULL;
+WiFiEventHandler m_onDHCPTimeoutHandler = NULL;
 
-void DataStorage::setup(const char *s, const char *p, Blinker *gb, Blinker *rb)
-{
-    m_wifiSSID = s;
-    m_wifiPassword = p;
+uint32_t m_httpErrorsCounter = 0;
 
-    m_greenLed = gb;
-    m_redLed = rb;
+uint32_t m_httpRequestsListSize = 0;
+asyncHTTPrequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
 
-    m_onConnectedHandler = WiFi.onStationModeConnected(DataStorage::onConnected);
-    m_onDisconnectedHandler = WiFi.onStationModeDisconnected(DataStorage::onDisconnected);
-    m_onAuthModeChangedHandler = WiFi.onStationModeAuthModeChanged(DataStorage::onAuthModeChanged);
-    m_onGotIPHandler = WiFi.onStationModeGotIP(DataStorage::onGotIP);
-    m_onDHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(DataStorage::onDHCPTimeout);
+String m_macAddress;
 
-    Serial.printf("[WIFI] Attempting to connect to %s\r\n", m_wifiSSID.c_str());
-    WiFi.begin(m_wifiSSID.c_str(), m_wifiPassword.c_str());
-
-    m_greenLed->setMode(Blinker::Data);
-    m_redLed->setMode(Blinker::Off);
-}
-
-void DataStorage::work()
-{
-    auto it = m_httpRequestsList.begin();
-    while(it != m_httpRequestsList.end())
-        if ((*it)->readyState() == asyncHTTPrequest::readyStateDone)
-            m_httpRequestsList.erase(it);
-        else
-            ++it;
-}
-
-void DataStorage::incrementCounters(bool cold, bool hot)
-{
-    if (cold)
-        m_coldWaterCouner += WATER_COLD_INCREMENT;
-
-    if (hot)
-        m_hotWaterCouner += WATER_HOT_INCREMENT;
-
-    Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data", millis());
-    
-    if (cold)
-        Serial.printf(" COLD = %u", m_coldWaterCouner);
-
-    if (hot)
-        Serial.printf(" HOT = %u", m_hotWaterCouner);
-
-    Serial.println();
-
-    if (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.println("[DataStorage::incrementCounters] No Wi-Fi connections available, can't send data");
-        return;
-    }
-
-    std::shared_ptr<asyncHTTPrequest> ahr(new asyncHTTPrequest);
-    ahr->setTimeout(180);
-    ahr->onReadyStateChange(DataStorage::globalHTTPStateChanged, this);
-
-    m_httpRequestsList.push_back(ahr);
-    Serial.printf("[DataStorage::incrementCounters] requests list size %u\r\n", m_httpRequestsList.size());
-
-    String url = "http://salieff.phantomazz.me:5190/jjrpulser/text.sh?cmd=add_value";
-
-    if (cold)
-    {
-        url += "&cold=";
-        url += String(m_coldWaterCouner);
-    }
-
-    if (hot)
-    {
-        url += "&hot=";
-        url += String(m_hotWaterCouner);
-    }
-
-    if (!ahr->open(asyncHTTPrequest::HTTPmethodGET, url.c_str()))
-        Serial.printf("[DataStorage::incrementCounters %lu] Error while opening HTTP request\r\n", millis());
-    else
-        ahr->send();
-}
-
-void DataStorage::onConnected(const WiFiEventStationModeConnected &e)
-{
-    Serial.printf("[WIFI %lu] Connected to %s %02X:%02X:%02X:%02X:%02X:%02X ch %u\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], e.channel);
-
-    m_greenLed->setMode(Blinker::Data);
-    m_redLed->setMode(Blinker::Off);
-}
-
-void DataStorage::onDisconnected(const WiFiEventStationModeDisconnected &e)
-{
-    Serial.printf("[WIFI %lu] Disconnected from %s %02X:%02X:%02X:%02X:%02X:%02X reason %s\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], printDisconnectReason(e.reason));
-
-    m_greenLed->setMode(Blinker::Work);
-    m_redLed->setMode(Blinker::Error);
-}
-
-void DataStorage::onAuthModeChanged(const WiFiEventStationModeAuthModeChanged &e)
-{
-    Serial.printf("[WIFI %lu] Auth mode changed from %u to %u\r\n", millis(), e.oldMode, e.newMode);
-}
-
-void DataStorage::onGotIP(const WiFiEventStationModeGotIP &e)
-{
-    Serial.printf("[WIFI %lu] Got IP ", millis());
-    Serial.println(e.ip);
-
-    Serial.print("    Mask    ");
-    Serial.println(e.mask);
-
-    Serial.print("    Gateway ");
-    Serial.println(e.gw);
-
-    m_greenLed->setMode(Blinker::Work);
-    m_redLed->setMode(Blinker::Off);
-}
-
-void DataStorage::onDHCPTimeout(void)
-{
-    Serial.printf("[WIFI %lu] DHCP timeout\r\n", millis());
-
-    m_greenLed->setMode(Blinker::Work);
-    m_redLed->setMode(Blinker::Error);
-}
-
-const char * DataStorage::printDisconnectReason(WiFiDisconnectReason r)
+// -----=====+++++oooooOOOOO WIFI Callbacks OOOOOooooo+++++=====-----
+/*
+const char * printDisconnectReason(WiFiDisconnectReason r)
 {
 #define PRINT_DISCONNECT_REASON(arg) if (r == WIFI_DISCONNECT_REASON_##arg) return #arg;
     PRINT_DISCONNECT_REASON(UNSPECIFIED)
@@ -180,8 +58,56 @@ const char * DataStorage::printDisconnectReason(WiFiDisconnectReason r)
 
     return "Unresolved disconnect reason";
 }
+*/
 
-void DataStorage::httpStateChanged(asyncHTTPrequest *r, int readyState)
+void onConnected(const WiFiEventStationModeConnected &e)
+{
+    Serial.printf("[WIFI %lu] Connected to %s %02X:%02X:%02X:%02X:%02X:%02X ch %u\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], e.channel);
+
+    m_greenLed->setMode(Blinker::Data);
+    m_redLed->setMode(Blinker::Off);
+}
+
+void onDisconnected(const WiFiEventStationModeDisconnected &e)
+{
+    // Serial.printf("[WIFI %lu] Disconnected from %s %02X:%02X:%02X:%02X:%02X:%02X reason %s\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], printDisconnectReason(e.reason));
+    Serial.printf("[WIFI %lu] Disconnected from %s %02X:%02X:%02X:%02X:%02X:%02X reason %d\r\n", millis(), e.ssid.c_str(), e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5], e.reason);
+
+    m_greenLed->setMode(Blinker::Work);
+    m_redLed->setMode(Blinker::Error);
+}
+
+void onAuthModeChanged(const WiFiEventStationModeAuthModeChanged &e)
+{
+    Serial.printf("[WIFI %lu] Auth mode changed from %u to %u\r\n", millis(), e.oldMode, e.newMode);
+}
+
+void onGotIP(const WiFiEventStationModeGotIP &e)
+{
+    Serial.printf("[WIFI %lu] Got IP ", millis());
+    Serial.println(e.ip);
+
+    Serial.print("    Mask    ");
+    Serial.println(e.mask);
+
+    Serial.print("    Gateway ");
+    Serial.println(e.gw);
+
+    m_greenLed->setMode(Blinker::Work);
+    m_redLed->setMode(Blinker::Off);
+}
+
+void onDHCPTimeout(void)
+{
+    Serial.printf("[WIFI %lu] DHCP timeout\r\n", millis());
+
+    m_greenLed->setMode(Blinker::Work);
+    m_redLed->setMode(Blinker::Error);
+}
+// -----=====+++++oooooOOOOO End of WIFI Callbacks OOOOOooooo+++++=====-----
+
+// -----=====+++++oooooOOOOO HTTP requests list functions OOOOOooooo+++++=====-----
+void httpStateChanged(void *, asyncHTTPrequest *r, int readyState)
 {
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP GET readyState: %d\r\n", millis(), readyState);
 
@@ -190,13 +116,150 @@ void DataStorage::httpStateChanged(asyncHTTPrequest *r, int readyState)
 
     Serial.printf("[DataStorage::onHTTPStateChanged] HTTP Code: %d\r\n", r->responseHTTPcode());
     if (r->responseHTTPcode() < 0)
+    {
+        ++m_httpErrorsCounter;
         return;
+    }
 
     Serial.println(r->responseText());
 }
 
-void DataStorage::globalHTTPStateChanged(void *arg, asyncHTTPrequest *r, int readyState)
+bool addToHttpRequestsList(String &url)
 {
-    DataStorage *ds = static_cast<DataStorage *>(arg);
-    ds->httpStateChanged(r, readyState);
+    if (m_httpRequestsListSize >= HTTP_CONN_LIST_MAX)
+    {
+        Serial.printf("[DataStorage::addToHttpRequestsList] List max size %d reached\r\n", HTTP_CONN_LIST_MAX);
+        return false;
+    }
+
+    asyncHTTPrequest *ahr = new asyncHTTPrequest;
+    ahr->setTimeout(180);
+    ahr->onReadyStateChange(httpStateChanged);
+
+    m_httpRequestsList[m_httpRequestsListSize] = ahr;
+    ++m_httpRequestsListSize;
+
+    if (!ahr->open(asyncHTTPrequest::HTTPmethodGET, url.c_str()))
+        Serial.println("[DataStorage::addToHttpRequestsList] Error while opening HTTP request\r\n");
+    else
+        ahr->send();
+
+    return true;
 }
+
+bool removeFromHttpRequestsList(uint32_t pos)
+{
+    if (pos >= m_httpRequestsListSize)
+    {
+        Serial.printf("[DataStorage::removeFromHttpRequestsList] invalid index %u more then list size %u\r\n", pos, m_httpRequestsListSize);
+        return false;
+    }
+
+    delete m_httpRequestsList[pos];
+    --m_httpRequestsListSize;
+
+    if (pos != m_httpRequestsListSize)
+        m_httpRequestsList[pos] = m_httpRequestsList[m_httpRequestsListSize];
+
+    return true;
+}
+
+void eraseHttpRequestsList()
+{
+    for (uint32_t i = 0; i < m_httpRequestsListSize; ++i)
+        delete m_httpRequestsList[i];
+
+    m_httpRequestsListSize = 0;
+}
+
+uint32_t httpRequestsListSize()
+{
+    return m_httpRequestsListSize;
+}
+
+void removeAllCompletedHttpRequests()
+{
+    uint32_t i = 0;
+    while (i < httpRequestsListSize())
+        if (m_httpRequestsList[i]->readyState() == asyncHTTPrequest::readyStateDone)
+            removeFromHttpRequestsList(i);
+        else
+            ++i;
+}
+// -----=====+++++oooooOOOOO End of HTTP requests list functions OOOOOooooo+++++=====-----
+
+// -----=====+++++oooooOOOOO Public interface OOOOOooooo+++++=====-----
+void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
+{
+    m_macAddress = WiFi.macAddress();
+    m_greenLed = gb;
+    m_redLed = rb;
+
+    m_onConnectedHandler = WiFi.onStationModeConnected(onConnected);
+    m_onDisconnectedHandler = WiFi.onStationModeDisconnected(onDisconnected);
+    m_onAuthModeChangedHandler = WiFi.onStationModeAuthModeChanged(onAuthModeChanged);
+    m_onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
+    m_onDHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(onDHCPTimeout);
+
+    Serial.printf("[WIFI] Attempting to connect to %s\r\n", ssid);
+    WiFi.begin(ssid, passwd);
+
+    m_greenLed->setMode(Blinker::Data);
+    m_redLed->setMode(Blinker::Off);
+}
+
+void work()
+{
+    removeAllCompletedHttpRequests();
+}
+
+void incrementCounters(bool cold, bool hot)
+{
+    if (cold)
+        m_coldWaterCounter += WATER_COLD_INCREMENT;
+
+    if (hot)
+        m_hotWaterCounter += WATER_HOT_INCREMENT;
+
+    Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data", millis());
+
+    if (cold)
+        Serial.printf(" COLD = %u", m_coldWaterCounter);
+
+    if (hot)
+        Serial.printf(" HOT = %u", m_hotWaterCounter);
+
+    Serial.println();
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("[DataStorage::incrementCounters] No Wi-Fi connections available, can't send data");
+        return;
+    }
+
+    // String url = "http://salieff.phantomazz.me:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
+    String url = "http://46.39.250.254:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
+
+    if (cold)
+    {
+        url += "&cold=";
+        url += String(m_coldWaterCounter);
+    }
+
+    if (hot)
+    {
+        url += "&hot=";
+        url += String(m_hotWaterCounter);
+    }
+
+    if (addToHttpRequestsList(url))
+        Serial.printf("[DataStorage::incrementCounters] requests list size %u\r\n", httpRequestsListSize());
+}
+
+uint32_t httpErrors()
+{
+    return m_httpErrorsCounter;
+}
+// -----=====+++++oooooOOOOO End of Public interface OOOOOooooo+++++=====-----
+
+}; // namespace DataStorage

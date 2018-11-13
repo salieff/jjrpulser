@@ -45,7 +45,7 @@ void printFreeHeap()
 {
     uint32_t memcurr = ESP.getFreeHeap();
     Serial.printf("FREEHeap: %d; DIFF %d\n", memcurr, memcurr - lastFreeHeap);
-    lastFreeHeap = memcurr;  
+    lastFreeHeap = memcurr;
 }
 
 void processConsoleInput()
@@ -93,22 +93,22 @@ void processConsoleInput()
 
     case 'c':
         Serial.println("Emulate COLD signal");
-        DataStorage::Instance().incrementCounters(true, false);
+        DataStorage::incrementCounters(true, false);
         break;
 
     case 'h':
         Serial.println("Emulate HOT signal");
-        DataStorage::Instance().incrementCounters(false, true);
+        DataStorage::incrementCounters(false, true);
         break;
 
     case 'u':
         Serial.printf("Uptime: %lu days %02lu:%02lu:%02lu\r\n", upTimeDays, upTimeHours, upTimeMinutes, upTimeSeconds);
+        Serial.printf("HTTP errors: %u\r\n", DataStorage::httpErrors());
         break;
 
     case 'm':
         printFreeHeap();
         break;
-        
     }
 #undef SWITCHLED
 }
@@ -123,7 +123,7 @@ bool processBouncer(PinBouncer &pb)
     if (!pb.newValue())
         return false;
 
-    Serial.printf("%s: %d\n", pb.name().c_str(), pb.value());
+    Serial.printf("%s: %d\n", pb.name(), pb.value());
     pb.resetNewValue();
 
     return pb.value() == LOW;
@@ -144,7 +144,7 @@ void setup()
     greenBlinker.setup();
     redBlinker.setup();
 
-    DataStorage::Instance().setup(JJR_PULSER_WIFI_SSID, JJR_PULSER_WIFI_PASSWORD, &greenBlinker, &redBlinker);
+    DataStorage::setup(JJR_PULSER_WIFI_SSID, JJR_PULSER_WIFI_PASSWORD, &greenBlinker, &redBlinker);
 
     lastFreeHeap = ESP.getFreeHeap();
     lastTestSendMillis = millis();
@@ -160,17 +160,17 @@ void testSend()
     lastTestSendMillis = timestamp;
     printFreeHeap();
 
-    DataStorage::Instance().incrementCounters(true, false);
-    DataStorage::Instance().incrementCounters(false, true);
-    DataStorage::Instance().incrementCounters(true, true);
+    DataStorage::incrementCounters(true, false);
+    DataStorage::incrementCounters(false, true);
+    DataStorage::incrementCounters(true, true);
 }
 
 void loop()
 {
     checkUptime();
     processConsoleInput();
-    
-    DataStorage::Instance().work();
+
+    DataStorage::work();
 
     greenBlinker.work();
     redBlinker.work();
@@ -179,7 +179,7 @@ void loop()
     bool hotInc = processBouncer(hotBouncer);
 
     if (coldInc || hotInc)
-        DataStorage::Instance().incrementCounters(coldInc, hotInc);
+        DataStorage::incrementCounters(coldInc, hotInc);
 
     testSend();
     // delay(50);

@@ -1,7 +1,6 @@
 #ifndef JJR_PULSER_BLINKER_H
 #define JJR_PULSER_BLINKER_H
 
-#include <stdint.h>
 #include <Arduino.h>
 
 #define GREEN_LED_PIN_NUMBER 12
