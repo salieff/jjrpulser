@@ -356,7 +356,7 @@ size_t  asyncHTTPrequest::_send() {
         supply -= _request->read(temp, chunk);
         sent += _client->add((char*)temp, chunk);
     }
-    delete temp;
+    delete[] temp;
     if(_request->available() == 0) {
         delete _request;
         _request = nullptr;
