@@ -4,19 +4,15 @@
 #include <Arduino.h>
 
 extern "C" {
-#include <lwip/tcp.h>
+#include <lwip/err.h>
+#include <lwip/ip_addr.h>
 }
+
+struct pbuf;
+struct tcp_pcb;
 
 class LWIP_HTTPRequest {
 public:
-    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int);
-
-    LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb = nullptr, void *cbArg = nullptr);
-    ~LWIP_HTTPRequest();
-
-    void userPoll();
-
-private:
     enum State {
         Closed,
         Resolving,
@@ -31,11 +27,22 @@ private:
         CloseFailed
     };
 
+    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int);
+
+    LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb = nullptr, void *cbArg = nullptr);
+    ~LWIP_HTTPRequest();
+
+    void userPoll();
+    State getState() const;
+
+private:
+
     void constructRequest();
     void resolve();
     void connect(ip_addr_t *ipaddr);
     void send();
     void close();
+    void abort();
 
     void onDnsFound(ip_addr_t *ipaddr);
     void onTcpError(err_t err);

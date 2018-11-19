@@ -1,4 +1,5 @@
 #include "storage.h"
+#include "httprequest.h"
 
 namespace DataStorage {
 
@@ -17,7 +18,8 @@ WiFiEventHandler m_onDHCPTimeoutHandler = NULL;
 uint32_t m_httpErrorsCounter = 0;
 
 uint32_t m_httpRequestsListSize = 0;
-asyncHTTPrequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
+// asyncHTTPrequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
+LWIP_HTTPRequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
 
 String m_macAddress;
 
@@ -107,6 +109,7 @@ void onDHCPTimeout(void)
 // -----=====+++++oooooOOOOO End of WIFI Callbacks OOOOOooooo+++++=====-----
 
 // -----=====+++++oooooOOOOO HTTP requests list functions OOOOOooooo+++++=====-----
+/*
 void httpStateChanged(void *, asyncHTTPrequest *r, int readyState)
 {
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP GET readyState: %d\r\n", millis(), readyState);
@@ -123,8 +126,10 @@ void httpStateChanged(void *, asyncHTTPrequest *r, int readyState)
 
     Serial.println(r->responseText());
 }
+*/
 
-bool addToHttpRequestsList(String &url)
+// bool addToHttpRequestsList(String &url)
+bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
 {
     if (m_httpRequestsListSize >= HTTP_CONN_LIST_MAX)
     {
@@ -132,17 +137,23 @@ bool addToHttpRequestsList(String &url)
         return false;
     }
 
+    /*
     asyncHTTPrequest *ahr = new asyncHTTPrequest;
     ahr->setTimeout(180);
     ahr->onReadyStateChange(httpStateChanged);
+    */
+
+    LWIP_HTTPRequest *ahr = new LWIP_HTTPRequest(host, port, url.c_str());
 
     m_httpRequestsList[m_httpRequestsListSize] = ahr;
     ++m_httpRequestsListSize;
 
+    /*
     if (!ahr->open(asyncHTTPrequest::HTTPmethodGET, url.c_str()))
         Serial.println("[DataStorage::addToHttpRequestsList] Error while opening HTTP request\r\n");
     else
         ahr->send();
+    */
 
     return true;
 }
@@ -181,10 +192,15 @@ void removeAllCompletedHttpRequests()
 {
     uint32_t i = 0;
     while (i < httpRequestsListSize())
-        if (m_httpRequestsList[i]->readyState() == asyncHTTPrequest::readyStateDone)
+    {
+        m_httpRequestsList[i]->userPoll();
+
+        // if (m_httpRequestsList[i]->readyState() == asyncHTTPrequest::readyStateDone)
+        if (m_httpRequestsList[i]->getState() == LWIP_HTTPRequest::Closed)
             removeFromHttpRequestsList(i);
         else
             ++i;
+    }
 }
 // -----=====+++++oooooOOOOO End of HTTP requests list functions OOOOOooooo+++++=====-----
 
@@ -238,7 +254,8 @@ void incrementCounters(bool cold, bool hot)
     }
 
     // String url = "http://salieff.phantomazz.me:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
-    String url = "http://46.39.250.254:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
+    // String url = "http://46.39.250.254:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
+    String url = "/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
 
     if (cold)
     {
@@ -252,7 +269,7 @@ void incrementCounters(bool cold, bool hot)
         url += String(m_hotWaterCounter);
     }
 
-    if (addToHttpRequestsList(url))
+    if (addToHttpRequestsList("salieff.phantomazz.me", 5190, url))
         Serial.printf("[DataStorage::incrementCounters] requests list size %u\r\n", httpRequestsListSize());
 }
 
