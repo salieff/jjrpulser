@@ -24,8 +24,11 @@ LWIP_HTTPRequest::LWIP_HTTPRequest(const char *host, uint16_t port, const char *
     , m_clientPcb(nullptr)
     , m_lastError(ERR_OK)
     , m_state(Closed)
-    , m_requestCode(ERR_OK)
+    , m_httpCode(-1)
+    , m_contentLength(-1)
+    , m_bodyStarted(false)
     , m_lastPollTimestamp(millis())
+    , m_constructTimestamp(millis())
 {
     resolve();
 }
@@ -48,7 +51,11 @@ void LWIP_HTTPRequest::userPoll()
 
     m_lastPollTimestamp = millis();
 
-    // TODO: Break state-machine by timeout or successfull result
+    /*
+    delta = millis() - m_constructTimestamp;
+    if (delta >= LWIP_HTTP_REQUEST_TIMEOUT)
+        return;
+    */
 
     switch(m_state)
     {
@@ -81,6 +88,11 @@ void LWIP_HTTPRequest::userPoll()
         break;
 
     case Closed :
+        if (!receivedCorrectHttp())
+            resolve();
+
+        break;
+
     case Resolving :
     case Connecting :
     case Sending :
@@ -91,10 +103,12 @@ void LWIP_HTTPRequest::userPoll()
     }
 }
 
+/*
 LWIP_HTTPRequest::State LWIP_HTTPRequest::getState() const
 {
     return m_state;
 }
+*/
 
 void LWIP_HTTPRequest::constructRequest()
 {
@@ -105,6 +119,14 @@ void LWIP_HTTPRequest::constructRequest()
     m_stringToSend += m_host;
     m_stringToSend += "\r\n";
     m_stringToSend += "Connection: close\r\n\r\n";
+
+    m_stringForRecv = "";
+
+    m_httpCode = -1;
+    m_contentLength = -1;
+
+    m_bodyStarted = false;
+    m_httpBody = "";
 }
 
 void LWIP_HTTPRequest::resolve()
@@ -258,7 +280,8 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         // но нам неважно, мы оцениваем успешность приема на уровне HTTP, а не TCP
         m_lastError = err;
         m_state = RecvFailed;
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] RecvFailed 1 p = %p %d\r\n", p, m_lastError);
+
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] %s %d\r\n", p ? "RecvFailed 1" : "Closed by server", m_lastError);
         return err;
     }
 
@@ -291,11 +314,25 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
     tcp_recved(m_clientPcb, cpLen);
 
     pbuf_free(p);
+
+    int ind = -1;
+    while ((ind = m_stringForRecv.indexOf('\n')) >= 0)
+    {
+        processNewLine(m_stringForRecv.substring(0, ind + 1));
+        m_stringForRecv.remove(0, ind + 1);
+    }
+
     return ERR_OK;
 }
 
 void LWIP_HTTPRequest::close()
 {
+    if (m_stringForRecv.length() > 0)
+    {
+        processNewLine(m_stringForRecv);
+        m_stringForRecv = "";
+    }
+
     if (!m_clientPcb)
     {
         m_state = Closed;
@@ -323,6 +360,12 @@ void LWIP_HTTPRequest::close()
 
 void LWIP_HTTPRequest::abort() // If abort() was called from LWIP callback, it's needed to return ERR_ABRT
 {
+    if (m_stringForRecv.length() > 0)
+    {
+        processNewLine(m_stringForRecv);
+        m_stringForRecv = "";
+    }
+
     if (!m_clientPcb)
     {
         m_state = Closed;
@@ -340,12 +383,141 @@ void LWIP_HTTPRequest::abort() // If abort() was called from LWIP callback, it's
     m_state = Closed;
 }
 
-void LWIP_HTTPRequest::setRequestCode(int c)
+void LWIP_HTTPRequest::processNewLine(String &str)
 {
-    if (m_requestCode == c)
+    bool okFlag = true;
+
+    if (m_httpCode < 0)
+        okFlag &&= processStartLine(str);
+    else if (!m_bodyStarted)
+        okFlag &&= processHeaderLine(str);
+    else
+        okFlag &&= processBodyLine(str);
+
+    if (okFlag)
         return;
 
-    m_requestCode = c;
-    if (m_resultCallback)
-        m_resultCallback(m_resultCallbackArg, this, m_requestCode);
+    // Если быа хоть одна ошибка парсинга HTTP протокола, попадаем сюда
+    // и инициируем ошибку приема, что приводит к закрытию соединения
+    // и повторной попытке запроса, если HTTP ответ некорректен
+
+    if (m_clientPcb)
+        tcp_recv(m_clientPcb, nullptr);
+
+    m_lastError = ERR_VAL;
+    m_state = RecvFailed;
+}
+
+bool LWIP_HTTPRequest::processStartLine(String &str)
+{
+    str.trim();
+
+    // HTTP/1.1 200 OK
+    String token;
+
+    int tokenEnd = getNextToken(str, token);
+    if (tokenEnd < 0 || !token.startsWith("HTTP/"))
+        return false;
+
+    tokenEnd = getNextToken(str, token, tokenEnd);
+    if (tokenEnd < 0 || !tokenToInt(token, m_httpCode))
+        return false;
+
+    return true;
+}
+
+bool LWIP_HTTPRequest::processHeaderLine(String &str)
+{
+    if (str == "\r\n" || str == "\n")
+    {
+        m_bodyStarted = true;
+        return true;
+    }
+
+    str.trim();
+
+    // Content-Length: 49
+    String token;
+
+    int tokenEnd = getNextToken(str, token, 0, ": \t\v\f\r\n");
+    if (tokenEnd < 0 || tokenEnd == str.length() || str[tokenEnd] != ':')
+        return false;
+
+    if (!token.equalsIgnoreCase("Content-Length"))
+        return true;
+
+    tokenEnd = getNextToken(str, token, tokenEnd);
+    if (tokenEnd < 0 || !tokenToInt(token, m_contentLength))
+        return false;
+
+    return true;
+}
+
+bool LWIP_HTTPRequest::processBodyLine(String &str)
+{
+    m_httpBody += str;
+
+    if (m_contentLength >= 0 && m_httpBody.length() > m_contentLength)
+    {
+        m_httpBody.remove(m_contentLength);
+        return false;
+    }
+
+    return true;
+}
+
+int LWIP_HTTPRequest::getNextToken(String &inStr, String &outStr, int startInd, String &sepStr)
+{
+    int tokenStart = -1;
+    for (int i = startInd; i < inStr.length(); ++i)
+        if (sepStr.indexOf(inStr[i]) < 0)
+        {
+            tokenStart = i;
+            break;
+        }
+
+    if (tokenStart < 0)
+    {
+        outStr = "";
+        return -1;
+    }
+
+    int tokenEnd = inStr.length();
+    for (int i = tokenStart + 1; i < inStr.length(); ++i)
+        if (sepStr.indexOf(inStr[i]) >= 0)
+        {
+            tokenEnd = i;
+            break;
+        }
+
+    outStr = inStr.substring(tokenStart, tokenEnd);
+    return tokenEnd;
+}
+
+bool LWIP_HTTPRequest::tokenToInt(String &token, int &i)
+{
+    if (token.length() == 0)
+        return false;
+
+    char *endptr = nullptr;
+    errno = 0;
+    i = strtol(token.c_str(), &endptr, 10);
+    if (errno != 0 || *endptr != '\0')
+    {
+        i = -1;
+        return false;
+    }
+
+    return true;
+}
+
+bool LWIP_HTTPRequest::receivedCorrectHttp() const
+{
+    if (m_httpCode < 0)
+        return false;
+
+    if (m_contentLength >= 0 && m_httpBody.length() != m_contentLength)
+        return false;
+
+    return true;
 }

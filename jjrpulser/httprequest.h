@@ -8,6 +8,8 @@ extern "C" {
 #include <lwip/ip_addr.h>
 }
 
+#define LWIP_HTTP_REQUEST_TIMEOUT 60000
+
 struct pbuf;
 struct tcp_pcb;
 
@@ -27,13 +29,13 @@ public:
         CloseFailed
     };
 
-    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int);
+    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int, String &);
 
     LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb = nullptr, void *cbArg = nullptr);
     ~LWIP_HTTPRequest();
 
     void userPoll();
-    State getState() const;
+    // State getState() const;
 
 private:
 
@@ -50,23 +52,37 @@ private:
     err_t onTcpDataSent(u16_t len);
     err_t onTcpDataReceived(pbuf *p, err_t err);
 
-    void setRequestCode(int c);
+    void processNewLine(String &str);
+    bool processStartLine(String &str);
+    bool processHeaderLine(String &str);
+    bool processBodyLine(String &str);
+
+    int getNextToken(String &inStr, String &outStr, int startInd = 0, String &sepStr = String(" \t\v\f\r\n"));
+    bool tokenToInt(String &token, int &i);
+
+    bool receivedCorrectHttp() const;
 
     String m_host;
     uint16_t m_port;
     String m_url;
+
     String m_stringToSend;
     String m_stringForRecv;
 
     ResultCallback m_resultCallback;
-    void * m_resultCallbackArg;
+    void *m_resultCallbackArg;
 
     tcp_pcb *m_clientPcb;
     err_t m_lastError;
     State m_state;
-    int m_requestCode;
+
+    int m_httpCode;
+    int m_contentLength;
+    bool m_bodyStarted;
+    String m_httpBody;
 
     unsigned long m_lastPollTimestamp;
+    unsigned long m_constructTimestamp;
 };
 
 #endif // JJR_PULSER_HTTP_REQUEST_H

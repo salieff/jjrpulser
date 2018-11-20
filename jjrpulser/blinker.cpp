@@ -34,7 +34,6 @@ void Blinker::work()
         return;
     }
 
-
     if (bt.lowTime > 0 && m_subMode == LOW && timestamp - m_lastTimestamp >= bt.lowTime)
     {
         m_lastTimestamp = timestamp;
