@@ -5,6 +5,8 @@ extern "C" {
 #include <lwip/dns.h>
 }
 
+#include <errno.h>
+
 #ifdef DEBUG_ESP_HTTP_CLIENT
 #ifdef DEBUG_ESP_PORT
 #define DEBUG_LWIP_HTTPREQUEST(...) DEBUG_ESP_PORT.printf( __VA_ARGS__ )
@@ -29,6 +31,7 @@ LWIP_HTTPRequest::LWIP_HTTPRequest(const char *host, uint16_t port, const char *
     , m_bodyStarted(false)
     , m_lastPollTimestamp(millis())
     , m_constructTimestamp(millis())
+    , m_markedForDelete(false)
 {
     resolve();
 }
@@ -45,17 +48,21 @@ LWIP_HTTPRequest::~LWIP_HTTPRequest()
 
 void LWIP_HTTPRequest::userPoll()
 {
+    if (markedForDelete())
+        return;
+
     unsigned long delta = millis() - m_lastPollTimestamp;
     if (delta < 100) // 10 times per second
         return;
 
     m_lastPollTimestamp = millis();
 
-    /*
     delta = millis() - m_constructTimestamp;
     if (delta >= LWIP_HTTP_REQUEST_TIMEOUT)
+    {
+        fireCallback(!receivedCorrectHttp());
         return;
-    */
+    }
 
     switch(m_state)
     {
@@ -90,6 +97,8 @@ void LWIP_HTTPRequest::userPoll()
     case Closed :
         if (!receivedCorrectHttp())
             resolve();
+        else
+            fireCallback();
 
         break;
 
@@ -103,12 +112,15 @@ void LWIP_HTTPRequest::userPoll()
     }
 }
 
-/*
-LWIP_HTTPRequest::State LWIP_HTTPRequest::getState() const
+void LWIP_HTTPRequest::markForDelete()
 {
-    return m_state;
+    m_markedForDelete = true;
 }
-*/
+
+bool LWIP_HTTPRequest::markedForDelete() const
+{
+    return m_markedForDelete;
+}
 
 void LWIP_HTTPRequest::constructRequest()
 {
@@ -147,7 +159,7 @@ void LWIP_HTTPRequest::resolve()
         return;
 
     m_state = ResolveFailed;
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::resolve] ResolveFailed 1 %d\r\n", m_lastError);
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::resolve] ResolveFailed 1 %ld\r\n", m_lastError);
 }
 
 void LWIP_HTTPRequest::onDnsFound(ip_addr_t *ipaddr)
@@ -160,7 +172,7 @@ void LWIP_HTTPRequest::onDnsFound(ip_addr_t *ipaddr)
 
     m_state = ResolveFailed;
     m_lastError = ERR_VAL;
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onDnsFound] ResolveFailed 2 %d\r\n", m_lastError);
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onDnsFound] ResolveFailed 2 %ld\r\n", m_lastError);
 }
 
 void LWIP_HTTPRequest::connect(ip_addr_t *ipaddr)
@@ -172,7 +184,7 @@ void LWIP_HTTPRequest::connect(ip_addr_t *ipaddr)
     {
         m_lastError = ERR_MEM;
         m_state = ConnectFailed;
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::connect] ConnectFailed 1 %d\r\n", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::connect] ConnectFailed 1 %ld\r\n", m_lastError);
         return;
     }
 
@@ -188,7 +200,7 @@ void LWIP_HTTPRequest::connect(ip_addr_t *ipaddr)
         return;
 
     m_state = ConnectFailed;
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::connect] ConnectFailed 2 %d\r\n", m_lastError);
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::connect] ConnectFailed 2 %ld\r\n", m_lastError);
 }
 
 err_t LWIP_HTTPRequest::onTcpConnected(err_t err)
@@ -197,7 +209,7 @@ err_t LWIP_HTTPRequest::onTcpConnected(err_t err)
     {
         m_lastError = err;
         m_state = ConnectFailed;
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpConnected] ConnectFailed 3 %d\r\n", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpConnected] ConnectFailed 3 %ld\r\n", m_lastError);
         return err;
     }
 
@@ -232,7 +244,7 @@ void LWIP_HTTPRequest::onTcpError(err_t err)
     m_lastError = err; // LWIP сам закрывает и освобождает m_clientPcb в этом случае
     m_state = Closed;  // если делать тут tcp_close(), то будет переезд по памяти и падение
 
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpError] ConnectFailed 4 %d\r\n", m_lastError);
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpError] ConnectFailed 4 %ld\r\n", m_lastError);
 }
 
 void LWIP_HTTPRequest::send()
@@ -250,7 +262,7 @@ void LWIP_HTTPRequest::send()
     {
         m_lastError = ERR_MEM;
         m_state = SentFailed;
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::send] SentFailed 1 %d\r\n", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::send] SentFailed 1 %ld\r\n", m_lastError);
         return;
     }
 
@@ -262,7 +274,7 @@ void LWIP_HTTPRequest::send()
         return;
 
     m_state = SentFailed;
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::send] SentFailed 2 %d\r\n", m_lastError);
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::send] SentFailed 2 %ld\r\n", m_lastError);
 }
 
 err_t LWIP_HTTPRequest::onTcpDataSent(u16_t len)
@@ -274,6 +286,8 @@ err_t LWIP_HTTPRequest::onTcpDataSent(u16_t len)
 
 err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
 {
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu]\r\n", millis());
+
     if (p == nullptr || err != ERR_OK)
     {
         // p == nullptr, это, по сути, не ошибка приема, а закрытие соединения другой стороной,
@@ -281,7 +295,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         m_lastError = err;
         m_state = RecvFailed;
 
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] %s %d\r\n", p ? "RecvFailed 1" : "Closed by server", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] %s %ld\r\n", millis(), p ? "RecvFailed 1" : "Closed by server", m_lastError);
         return err;
     }
 
@@ -300,7 +314,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
 
         pbuf_free(p);
 
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] RecvFailed 2 %d\r\n", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] RecvFailed 2 %ld\r\n", m_lastError);
         return ERR_OK;
     }
 
@@ -308,7 +322,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
     tmpBuf[cpLen] = 0;
 
     m_stringForRecv += const_cast<const char *>(tmpBuf);
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived] m_stringForRecv = %s\r\n", m_stringForRecv.c_str());
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] m_stringForRecv = %s\r\n", millis(), m_stringForRecv.c_str());
 
     free(tmpBuf);
     tcp_recved(m_clientPcb, cpLen);
@@ -350,7 +364,7 @@ void LWIP_HTTPRequest::close()
     if (m_lastError != ERR_OK)
     {
         m_state = CloseFailed;
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::close] CloseFailed 1 %d\r\n", m_lastError);
+        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::close] CloseFailed 1 %ld\r\n", m_lastError);
         return;
     }
 
@@ -383,21 +397,21 @@ void LWIP_HTTPRequest::abort() // If abort() was called from LWIP callback, it's
     m_state = Closed;
 }
 
-void LWIP_HTTPRequest::processNewLine(String &str)
+void LWIP_HTTPRequest::processNewLine(const String &str)
 {
     bool okFlag = true;
 
     if (m_httpCode < 0)
-        okFlag &&= processStartLine(str);
+        okFlag = okFlag && processStartLine(str);
     else if (!m_bodyStarted)
-        okFlag &&= processHeaderLine(str);
+        okFlag = okFlag && processHeaderLine(str);
     else
-        okFlag &&= processBodyLine(str);
+        okFlag = okFlag && processBodyLine(str);
 
     if (okFlag)
         return;
 
-    // Если быа хоть одна ошибка парсинга HTTP протокола, попадаем сюда
+    // Если была хоть одна ошибка парсинга HTTP протокола, попадаем сюда
     // и инициируем ошибку приема, что приводит к закрытию соединения
     // и повторной попытке запроса, если HTTP ответ некорректен
 
@@ -408,10 +422,8 @@ void LWIP_HTTPRequest::processNewLine(String &str)
     m_state = RecvFailed;
 }
 
-bool LWIP_HTTPRequest::processStartLine(String &str)
+bool LWIP_HTTPRequest::processStartLine(const String &str)
 {
-    str.trim();
-
     // HTTP/1.1 200 OK
     String token;
 
@@ -426,7 +438,7 @@ bool LWIP_HTTPRequest::processStartLine(String &str)
     return true;
 }
 
-bool LWIP_HTTPRequest::processHeaderLine(String &str)
+bool LWIP_HTTPRequest::processHeaderLine(const String &str)
 {
     if (str == "\r\n" || str == "\n")
     {
@@ -434,30 +446,36 @@ bool LWIP_HTTPRequest::processHeaderLine(String &str)
         return true;
     }
 
-    str.trim();
-
     // Content-Length: 49
     String token;
 
-    int tokenEnd = getNextToken(str, token, 0, ": \t\v\f\r\n");
-    if (tokenEnd < 0 || tokenEnd == str.length() || str[tokenEnd] != ':')
+    int tokenEnd = getNextToken(str, token, 0, ":");
+    if (tokenEnd < 0 || (unsigned)tokenEnd == str.length())
+        return false;
+
+    token.trim();
+    if (token.length() == 0)
         return false;
 
     if (!token.equalsIgnoreCase("Content-Length"))
         return true;
 
-    tokenEnd = getNextToken(str, token, tokenEnd);
-    if (tokenEnd < 0 || !tokenToInt(token, m_contentLength))
+    tokenEnd = getNextToken(str, token, tokenEnd, ":");
+    if (tokenEnd < 0)
+        return false;
+
+    token.trim();
+    if (!tokenToInt(token, m_contentLength))
         return false;
 
     return true;
 }
 
-bool LWIP_HTTPRequest::processBodyLine(String &str)
+bool LWIP_HTTPRequest::processBodyLine(const String &str)
 {
     m_httpBody += str;
 
-    if (m_contentLength >= 0 && m_httpBody.length() > m_contentLength)
+    if (m_contentLength >= 0 && m_httpBody.length() > (unsigned)m_contentLength)
     {
         m_httpBody.remove(m_contentLength);
         return false;
@@ -466,10 +484,10 @@ bool LWIP_HTTPRequest::processBodyLine(String &str)
     return true;
 }
 
-int LWIP_HTTPRequest::getNextToken(String &inStr, String &outStr, int startInd, String &sepStr)
+int LWIP_HTTPRequest::getNextToken(const String &inStr, String &outStr, int startInd, const String &sepStr)
 {
     int tokenStart = -1;
-    for (int i = startInd; i < inStr.length(); ++i)
+    for (int i = startInd; (unsigned)i < inStr.length(); ++i)
         if (sepStr.indexOf(inStr[i]) < 0)
         {
             tokenStart = i;
@@ -483,7 +501,7 @@ int LWIP_HTTPRequest::getNextToken(String &inStr, String &outStr, int startInd, 
     }
 
     int tokenEnd = inStr.length();
-    for (int i = tokenStart + 1; i < inStr.length(); ++i)
+    for (int i = tokenStart + 1; (unsigned)i < inStr.length(); ++i)
         if (sepStr.indexOf(inStr[i]) >= 0)
         {
             tokenEnd = i;
@@ -494,7 +512,7 @@ int LWIP_HTTPRequest::getNextToken(String &inStr, String &outStr, int startInd, 
     return tokenEnd;
 }
 
-bool LWIP_HTTPRequest::tokenToInt(String &token, int &i)
+bool LWIP_HTTPRequest::tokenToInt(const String &token, int &i)
 {
     if (token.length() == 0)
         return false;
@@ -516,8 +534,25 @@ bool LWIP_HTTPRequest::receivedCorrectHttp() const
     if (m_httpCode < 0)
         return false;
 
-    if (m_contentLength >= 0 && m_httpBody.length() != m_contentLength)
+    if (!m_bodyStarted)
+        return false;
+
+    if (m_contentLength >= 0 && m_httpBody.length() != (unsigned)m_contentLength)
         return false;
 
     return true;
+}
+
+void LWIP_HTTPRequest::fireCallback(bool byTimeout)
+{
+    if (!m_resultCallback)
+        return;
+
+    if (byTimeout)
+        m_resultCallback(m_resultCallbackArg, this, -1, "");
+    else
+        m_resultCallback(m_resultCallbackArg, this, m_httpCode, m_httpBody);
+
+    m_resultCallback = nullptr;
+    m_resultCallbackArg = nullptr;
 }

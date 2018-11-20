@@ -15,6 +15,17 @@ struct tcp_pcb;
 
 class LWIP_HTTPRequest {
 public:
+
+    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int, const String &);
+
+    LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb = nullptr, void *cbArg = nullptr);
+    ~LWIP_HTTPRequest();
+
+    void userPoll();
+    void markForDelete();
+    bool markedForDelete() const;
+
+private:
     enum State {
         Closed,
         Resolving,
@@ -29,16 +40,6 @@ public:
         CloseFailed
     };
 
-    typedef void (*ResultCallback)(void *, LWIP_HTTPRequest *, int, String &);
-
-    LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb = nullptr, void *cbArg = nullptr);
-    ~LWIP_HTTPRequest();
-
-    void userPoll();
-    // State getState() const;
-
-private:
-
     void constructRequest();
     void resolve();
     void connect(ip_addr_t *ipaddr);
@@ -52,15 +53,16 @@ private:
     err_t onTcpDataSent(u16_t len);
     err_t onTcpDataReceived(pbuf *p, err_t err);
 
-    void processNewLine(String &str);
-    bool processStartLine(String &str);
-    bool processHeaderLine(String &str);
-    bool processBodyLine(String &str);
+    void processNewLine(const String &str);
+    bool processStartLine(const String &str);
+    bool processHeaderLine(const String &str);
+    bool processBodyLine(const String &str);
 
-    int getNextToken(String &inStr, String &outStr, int startInd = 0, String &sepStr = String(" \t\v\f\r\n"));
-    bool tokenToInt(String &token, int &i);
+    int getNextToken(const String &inStr, String &outStr, int startInd = 0, const String &sepStr = String(" \t\v\f\r\n"));
+    bool tokenToInt(const String &token, int &i);
 
     bool receivedCorrectHttp() const;
+    void fireCallback(bool byTimeout = false);
 
     String m_host;
     uint16_t m_port;
@@ -83,6 +85,8 @@ private:
 
     unsigned long m_lastPollTimestamp;
     unsigned long m_constructTimestamp;
+
+    bool m_markedForDelete;
 };
 
 #endif // JJR_PULSER_HTTP_REQUEST_H

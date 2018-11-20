@@ -1,5 +1,6 @@
 #include "storage.h"
 #include "httprequest.h"
+#include "passwords.h"
 
 namespace DataStorage {
 
@@ -18,7 +19,6 @@ WiFiEventHandler m_onDHCPTimeoutHandler = NULL;
 uint32_t m_httpErrorsCounter = 0;
 
 uint32_t m_httpRequestsListSize = 0;
-// asyncHTTPrequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
 LWIP_HTTPRequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
 
 String m_macAddress;
@@ -109,26 +109,19 @@ void onDHCPTimeout(void)
 // -----=====+++++oooooOOOOO End of WIFI Callbacks OOOOOooooo+++++=====-----
 
 // -----=====+++++oooooOOOOO HTTP requests list functions OOOOOooooo+++++=====-----
-/*
-void httpStateChanged(void *, asyncHTTPrequest *r, int readyState)
+void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
 {
-    Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP GET readyState: %d\r\n", millis(), readyState);
-
-    if (readyState != asyncHTTPrequest::readyStateDone)
-        return;
-
-    Serial.printf("[DataStorage::onHTTPStateChanged] HTTP Code: %d\r\n", r->responseHTTPcode());
-    if (r->responseHTTPcode() < 0)
+    Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP code : %d\r\n", millis(), code);
+    if (code < 0)
     {
         ++m_httpErrorsCounter;
         return;
     }
 
-    Serial.println(r->responseText());
+    Serial.println(body);
+    r->markForDelete();
 }
-*/
 
-// bool addToHttpRequestsList(String &url)
 bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
 {
     if (m_httpRequestsListSize >= HTTP_CONN_LIST_MAX)
@@ -137,23 +130,10 @@ bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
         return false;
     }
 
-    /*
-    asyncHTTPrequest *ahr = new asyncHTTPrequest;
-    ahr->setTimeout(180);
-    ahr->onReadyStateChange(httpStateChanged);
-    */
-
-    LWIP_HTTPRequest *ahr = new LWIP_HTTPRequest(host, port, url.c_str());
+    LWIP_HTTPRequest *ahr = new LWIP_HTTPRequest(host, port, url.c_str(), httpStateChanged);
 
     m_httpRequestsList[m_httpRequestsListSize] = ahr;
     ++m_httpRequestsListSize;
-
-    /*
-    if (!ahr->open(asyncHTTPrequest::HTTPmethodGET, url.c_str()))
-        Serial.println("[DataStorage::addToHttpRequestsList] Error while opening HTTP request\r\n");
-    else
-        ahr->send();
-    */
 
     return true;
 }
@@ -195,8 +175,7 @@ void removeAllCompletedHttpRequests()
     {
         m_httpRequestsList[i]->userPoll();
 
-        // if (m_httpRequestsList[i]->readyState() == asyncHTTPrequest::readyStateDone)
-        if (m_httpRequestsList[i]->getState() == LWIP_HTTPRequest::Closed)
+        if (m_httpRequestsList[i]->markedForDelete())
             removeFromHttpRequestsList(i);
         else
             ++i;
@@ -253,9 +232,9 @@ void incrementCounters(bool cold, bool hot)
         return;
     }
 
-    // String url = "http://salieff.phantomazz.me:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
-    // String url = "http://46.39.250.254:5190/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
-    String url = "/jjrpulser/text.sh?cmd=add_value&mac=" + m_macAddress;
+    String url(JJR_PULSER_SERVER_URL);
+    url += "?cmd=add_value&mac=";
+    url += m_macAddress;
 
     if (cold)
     {
