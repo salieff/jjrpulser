@@ -146,7 +146,7 @@ void LWIP_HTTPRequest::resolve()
     m_state = Resolving;
 
     ip_addr_t addr;
-    m_lastError = dns_gethostbyname(m_host.c_str(), &addr, [](const char *, ip_addr_t *ipaddr, void *arg) {
+    m_lastError = dns_gethostbyname(m_host.c_str(), &addr, [](const char *, const ip_addr_t *ipaddr, void *arg) {
         (static_cast<LWIP_HTTPRequest *>(arg))->onDnsFound(ipaddr);
     }, this);
     if (m_lastError == ERR_OK)
@@ -162,7 +162,7 @@ void LWIP_HTTPRequest::resolve()
     DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::resolve] ResolveFailed 1 %ld\r\n", m_lastError);
 }
 
-void LWIP_HTTPRequest::onDnsFound(ip_addr_t *ipaddr)
+void LWIP_HTTPRequest::onDnsFound(const ip_addr_t *ipaddr)
 {
     if ((ipaddr) && (ipaddr->addr))
     {
@@ -175,7 +175,7 @@ void LWIP_HTTPRequest::onDnsFound(ip_addr_t *ipaddr)
     DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onDnsFound] ResolveFailed 2 %ld\r\n", m_lastError);
 }
 
-void LWIP_HTTPRequest::connect(ip_addr_t *ipaddr)
+void LWIP_HTTPRequest::connect(const ip_addr_t *ipaddr)
 {
     m_state = Connecting;
 
@@ -286,7 +286,7 @@ err_t LWIP_HTTPRequest::onTcpDataSent(u16_t len)
 
 err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
 {
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu]\r\n", millis());
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Enter\r\n", millis());
 
     if (p == nullptr || err != ERR_OK)
     {
@@ -329,6 +329,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
 
     pbuf_free(p);
 
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Start processing\r\n", millis());
     int ind = -1;
     while ((ind = m_stringForRecv.indexOf('\n')) >= 0)
     {
@@ -336,6 +337,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         m_stringForRecv.remove(0, ind + 1);
     }
 
+    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Leave\r\n", millis());
     return ERR_OK;
 }
 

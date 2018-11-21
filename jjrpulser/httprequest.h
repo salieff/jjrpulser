@@ -42,12 +42,12 @@ private:
 
     void constructRequest();
     void resolve();
-    void connect(ip_addr_t *ipaddr);
+    void connect(const ip_addr_t *ipaddr);
     void send();
     void close();
     void abort();
 
-    void onDnsFound(ip_addr_t *ipaddr);
+    void onDnsFound(const ip_addr_t *ipaddr);
     void onTcpError(err_t err);
     err_t onTcpConnected(err_t err); // An unused error code, always ERR_OK currently ;-)
     err_t onTcpDataSent(u16_t len);
