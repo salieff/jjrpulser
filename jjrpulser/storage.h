@@ -15,7 +15,7 @@ namespace DataStorage {
 void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb);
 void work();
 void incrementCounters(bool cold, bool hot);
-uint32_t httpErrors();
+void printStatistics();
 
 }; // namespace DataStorage
 

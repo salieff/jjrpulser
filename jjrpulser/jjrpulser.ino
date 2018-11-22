@@ -103,7 +103,7 @@ void processConsoleInput()
 
     case 'u':
         Serial.printf("Uptime: %lu days %02lu:%02lu:%02lu\r\n", upTimeDays, upTimeHours, upTimeMinutes, upTimeSeconds);
-        Serial.printf("HTTP errors: %u\r\n", DataStorage::httpErrors());
+        DataStorage::printStatistics();
         break;
 
     case 'm':

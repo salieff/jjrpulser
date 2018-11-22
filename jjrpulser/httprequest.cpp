@@ -486,7 +486,35 @@ bool LWIP_HTTPRequest::processBodyLine(const String &str)
     return true;
 }
 
-int LWIP_HTTPRequest::getNextToken(const String &inStr, String &outStr, int startInd, const String &sepStr)
+bool LWIP_HTTPRequest::receivedCorrectHttp() const
+{
+    if (m_httpCode < 0)
+        return false;
+
+    if (!m_bodyStarted)
+        return false;
+
+    if (m_contentLength >= 0 && m_httpBody.length() != (unsigned)m_contentLength)
+        return false;
+
+    return true;
+}
+
+void LWIP_HTTPRequest::fireCallback(bool byTimeout)
+{
+    if (!m_resultCallback)
+        return;
+
+    if (byTimeout)
+        m_resultCallback(m_resultCallbackArg, this, -1, "");
+    else
+        m_resultCallback(m_resultCallbackArg, this, m_httpCode, m_httpBody);
+
+    m_resultCallback = nullptr;
+    m_resultCallbackArg = nullptr;
+}
+
+int getNextToken(const String &inStr, String &outStr, int startInd, const String &sepStr)
 {
     int tokenStart = -1;
     for (int i = startInd; (unsigned)i < inStr.length(); ++i)
@@ -514,7 +542,7 @@ int LWIP_HTTPRequest::getNextToken(const String &inStr, String &outStr, int star
     return tokenEnd;
 }
 
-bool LWIP_HTTPRequest::tokenToInt(const String &token, int &i)
+bool tokenToInt(const String &token, int &i)
 {
     if (token.length() == 0)
         return false;
@@ -529,32 +557,4 @@ bool LWIP_HTTPRequest::tokenToInt(const String &token, int &i)
     }
 
     return true;
-}
-
-bool LWIP_HTTPRequest::receivedCorrectHttp() const
-{
-    if (m_httpCode < 0)
-        return false;
-
-    if (!m_bodyStarted)
-        return false;
-
-    if (m_contentLength >= 0 && m_httpBody.length() != (unsigned)m_contentLength)
-        return false;
-
-    return true;
-}
-
-void LWIP_HTTPRequest::fireCallback(bool byTimeout)
-{
-    if (!m_resultCallback)
-        return;
-
-    if (byTimeout)
-        m_resultCallback(m_resultCallbackArg, this, -1, "");
-    else
-        m_resultCallback(m_resultCallbackArg, this, m_httpCode, m_httpBody);
-
-    m_resultCallback = nullptr;
-    m_resultCallbackArg = nullptr;
 }

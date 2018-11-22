@@ -16,7 +16,9 @@ WiFiEventHandler m_onAuthModeChangedHandler = NULL;
 WiFiEventHandler m_onGotIPHandler = NULL;
 WiFiEventHandler m_onDHCPTimeoutHandler = NULL;
 
-uint32_t m_httpErrorsCounter = 0;
+uint32_t m_httpReqSent = 0;
+uint32_t m_httpReqCommited = 0;
+uint32_t m_httpReqFailed = 0;
 
 uint32_t m_httpRequestsListSize = 0;
 LWIP_HTTPRequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
@@ -109,16 +111,83 @@ void onDHCPTimeout(void)
 // -----=====+++++oooooOOOOO End of WIFI Callbacks OOOOOooooo+++++=====-----
 
 // -----=====+++++oooooOOOOO HTTP requests list functions OOOOOooooo+++++=====-----
+void checkSetupAttr(const String &line, const char *attr, int &retInt)
+{
+    String token;
+
+    int tokenEnd = getNextToken(line, token, 0, "=");
+    if (tokenEnd < 0 || (unsigned)tokenEnd == line.length())
+        return;
+
+    token.trim();
+    if (token.length() == 0)
+        return;
+
+    if (!token.equalsIgnoreCase(attr))
+        return;
+
+    tokenEnd = getNextToken(line, token, tokenEnd, "=");
+    if (tokenEnd < 0)
+        return;
+
+    token.trim();
+    tokenToInt(token, retInt);
+}
+
+bool checkSetupColdHot(const String &body)
+{
+    int newCold = -1;
+    int newHot = -1;
+
+    int startInd = 0;
+    int endInd = 0;
+
+    do
+    {
+        endInd = body.indexOf('\n', startInd);
+        String line = (endInd >= 0) ? body.substring(startInd, endInd) : body.substring(startInd);
+        startInd = endInd + 1;
+
+        checkSetupAttr(line, "setup_new_cold", newCold);
+        checkSetupAttr(line, "setup_new_hot", newHot);
+    } while (endInd >= 0);
+
+    if (newCold >= 0 || newHot >= 0)
+    {
+        Serial.print("    >>>> Incoming setup from server:");
+
+        if (newCold >= 0)
+            Serial.printf(" COLD = %d", newCold);
+
+        if (newHot >= 0)
+            Serial.printf(" HOT = %d", newHot);
+
+        Serial.println();
+        return true;
+    }
+
+    return false;
+}
+
 void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
 {
+    ++m_httpReqCommited;
+
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP code : %d\r\n", millis(), code);
     if (code < 0)
     {
-        ++m_httpErrorsCounter;
+        ++m_httpReqFailed;
+        m_redLed->setMode(Blinker::Error);
         return;
     }
 
-    Serial.println(body);
+    m_redLed->setMode(Blinker::Off);
+
+    if (checkSetupColdHot(body))
+        m_greenLed->setMode(Blinker::Setup);
+    else
+        m_greenLed->setMode(Blinker::Work);
+
     r->markForDelete();
 }
 
@@ -163,23 +232,28 @@ void eraseHttpRequestsList()
     m_httpRequestsListSize = 0;
 }
 
-uint32_t httpRequestsListSize()
-{
-    return m_httpRequestsListSize;
-}
-
 void removeAllCompletedHttpRequests()
 {
     uint32_t i = 0;
-    while (i < httpRequestsListSize())
+    uint32_t removed = 0;
+
+    while (i < m_httpRequestsListSize)
     {
         m_httpRequestsList[i]->userPoll();
 
         if (m_httpRequestsList[i]->markedForDelete())
+        {
             removeFromHttpRequestsList(i);
+            ++removed;
+        }
         else
+        {
             ++i;
+        }
     }
+
+    if (removed)
+        Serial.printf("[removeAllCompletedHttpRequests] removed %u connections%s\r\n", removed, removed > 6 ? " LOOP WAS STUCK?" : "");
 }
 // -----=====+++++oooooOOOOO End of HTTP requests list functions OOOOOooooo+++++=====-----
 
@@ -229,6 +303,7 @@ void incrementCounters(bool cold, bool hot)
     if (WiFi.status() != WL_CONNECTED)
     {
         Serial.println("[DataStorage::incrementCounters] No Wi-Fi connections available, can't send data");
+        m_redLed->setMode(Blinker::Error);
         return;
     }
 
@@ -248,13 +323,23 @@ void incrementCounters(bool cold, bool hot)
         url += String(m_hotWaterCounter);
     }
 
-    if (addToHttpRequestsList("salieff.phantomazz.me", 5190, url))
-        Serial.printf("[DataStorage::incrementCounters] requests list size %u\r\n", httpRequestsListSize());
+    if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))
+    {
+        ++m_httpReqSent;
+        m_greenLed->setMode(Blinker::Data);
+    }
+    else
+    {
+        m_redLed->setMode(Blinker::Error);
+    }
 }
 
-uint32_t httpErrors()
+void printStatistics()
 {
-    return m_httpErrorsCounter;
+    Serial.printf("HTTP Requests sent: %u\r\n", m_httpReqSent);
+    Serial.printf("HTTP Requests commited: %u\r\n", m_httpReqCommited);
+    Serial.printf("HTTP Requests failed: %u\r\n", m_httpReqFailed);
+    Serial.printf("HTTP Queue size %u\r\n", m_httpRequestsListSize);
 }
 // -----=====+++++oooooOOOOO End of Public interface OOOOOooooo+++++=====-----
 

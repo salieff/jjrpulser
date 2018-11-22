@@ -58,9 +58,6 @@ private:
     bool processHeaderLine(const String &str);
     bool processBodyLine(const String &str);
 
-    int getNextToken(const String &inStr, String &outStr, int startInd = 0, const String &sepStr = String(" \t\v\f\r\n"));
-    bool tokenToInt(const String &token, int &i);
-
     bool receivedCorrectHttp() const;
     void fireCallback(bool byTimeout = false);
 
@@ -88,5 +85,8 @@ private:
 
     bool m_markedForDelete;
 };
+
+int getNextToken(const String &inStr, String &outStr, int startInd = 0, const String &sepStr = String(" \t\v\f\r\n"));
+bool tokenToInt(const String &token, int &i);
 
 #endif // JJR_PULSER_HTTP_REQUEST_H
