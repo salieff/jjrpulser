@@ -171,6 +171,7 @@ bool checkSetupColdHot(const String &body)
 
 void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
 {
+    r->markForDelete();
     ++m_httpReqCommited;
 
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP code : %d\r\n", millis(), code);
@@ -187,8 +188,6 @@ void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
         m_greenLed->setMode(Blinker::Setup);
     else
         m_greenLed->setMode(Blinker::Work);
-
-    r->markForDelete();
 }
 
 bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
@@ -219,7 +218,7 @@ bool removeFromHttpRequestsList(uint32_t pos)
     --m_httpRequestsListSize;
 
     if (pos != m_httpRequestsListSize)
-        m_httpRequestsList[pos] = m_httpRequestsList[m_httpRequestsListSize];
+        memmove(m_httpRequestsList + pos, m_httpRequestsList + pos + 1, (m_httpRequestsListSize - pos) * sizeof(m_httpRequestsList[0]));
 
     return true;
 }

@@ -51,7 +51,16 @@ void LWIP_HTTPRequest::userPoll()
     if (markedForDelete())
         return;
 
-    unsigned long delta = millis() - m_lastPollTimestamp;
+    unsigned long delta = millis() - m_constructTimestamp;
+    if (delta >= LWIP_HTTP_REQUEST_TIMEOUT)
+    {
+        if (m_resultCallback) // fireCallback проверяет это сам, но так мы оптимизируем ненужное выполнение receivedCorrectHttp()
+            fireCallback(!receivedCorrectHttp());
+
+        return;
+    }
+
+    delta = millis() - m_lastPollTimestamp;
     if (delta < 100) // 10 times per second
         return;
 
@@ -205,6 +214,8 @@ void LWIP_HTTPRequest::connect(const ip_addr_t *ipaddr)
 
 err_t LWIP_HTTPRequest::onTcpConnected(err_t err)
 {
+    // Serial.printf("<CONNECTED> %lu\r\n", millis());
+
     if (err != ERR_OK) // An unused error code, always ERR_OK currently ;-)
     {
         m_lastError = err;
@@ -279,6 +290,8 @@ void LWIP_HTTPRequest::send()
 
 err_t LWIP_HTTPRequest::onTcpDataSent(u16_t len)
 {
+    // Serial.printf("<SENT> %lu\r\n", millis());
+
     m_stringToSend.remove(0, len);
     send();
     return ERR_OK;
@@ -286,6 +299,13 @@ err_t LWIP_HTTPRequest::onTcpDataSent(u16_t len)
 
 err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
 {
+    /*
+    if (p)
+        Serial.printf("<RECEIVED> %lu\r\n", millis());
+    else
+        Serial.printf("<CLOSED> %lu\r\n", millis());
+    */
+
     DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Enter\r\n", millis());
 
     if (p == nullptr || err != ERR_OK)
@@ -296,6 +316,11 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         m_state = RecvFailed;
 
         DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] %s %ld\r\n", millis(), p ? "RecvFailed 1" : "Closed by server", m_lastError);
+
+        close();
+        if (receivedCorrectHttp())
+            fireCallback();
+
         return err;
     }
 
