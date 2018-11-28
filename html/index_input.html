@@ -1,0 +1,18 @@
+<form action="cmd.sh">
+    <fieldset class="fieldset-auto-width">
+        <legend>Здесь можно задать текущие значения счетчиков</legend>
+            <input type="hidden" name="cmd" value="setup">
+            <table>
+                <tr>
+                    <td>Холодная вода:</td>
+                    <td><input type="number" name="cold" value="0"></td>
+                </tr>
+                <tr>
+                    <td>Горячая вода:</td>
+                    <td><input type="number" name="hot" value="0"></td>
+               </tr>
+            </table>
+
+            <p><input type="submit" value="Задать"></p>
+    </fieldset>
+</form>

@@ -1,0 +1,22 @@
+.fieldset-auto-width {
+    display: inline-block;
+}
+
+.water-counter {
+    display: inline-block;
+    position: relative;
+}
+
+.water-counter span {
+    display: inline-block;
+    position: absolute;
+    top: 97px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+
+    color: black;
+    font-family: monospace;
+    font-size: 35px;
+}

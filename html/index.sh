@@ -27,8 +27,8 @@ HOT_TIME="$( /opt/bin/sqlite3 "${DB_FILE}" "SELECT datetime(MAX(create_time), 'u
 TODAY_TM="$( /opt/bin/date '+%F %T' )"
 
 cat << EOF
-<center>
 <p><h2>Сегодня: ${TODAY_TM}</h2></p>
+
 <table>
  <tr>
  <td>
@@ -56,8 +56,42 @@ cat << EOF
  </td>
  </tr>
 </table>
-</center>
 <br>
 EOF
+
+cat index_input.html
+
+SETUP_COLD="$( /opt/bin/sqlite3 "${DB_FILE}" 'SELECT cold_value FROM settings' )"
+SETUP_HOT="$( /opt/bin/sqlite3 "${DB_FILE}" 'SELECT hot_value FROM settings' )"
+
+if [ "${SETUP_COLD}" != '-1' -o "${SETUP_HOT}" != '-1' ]
+then
+    echo '
+    <fieldset class="fieldset-auto-width">
+        <legend>Настройки, ожидающие отправки в устройство</legend>
+            <table>'
+
+    if [ "${SETUP_COLD}" != '-1' -o "${SETUP_HOT}" != '-1' ]
+    then
+        echo "
+        <tr>
+            <td>Холодная вода:</td>
+            <td>${SETUP_COLD}</td>
+        </tr>"
+    fi
+
+    if [ "${SETUP_COLD}" != '-1' -o "${SETUP_HOT}" != '-1' ]
+    then
+        echo "
+        <tr>
+            <td>Горячая вода:</td>
+            <td>${SETUP_HOT}</td>
+        </tr>"
+    fi
+
+    echo '
+        </table>
+    </fieldset>'
+fi
 
 cat index_footer.html
