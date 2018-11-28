@@ -59,14 +59,9 @@ TIME_OFFSET="$( tzSeconds )"
 
 TABLE='cold_water'
 
-#MIN_COLD_TIME="$( getBorderValue "${TABLE}" 'MIN' 'create_time' "${TIME_OFFSET}" )"
-#MAX_COLD_TIME="$( getBorderValue "${TABLE}" 'MAX' 'create_time' "${TIME_OFFSET}" )"
-
 MIN_COLD_VALUE="$( getBorderValue "${TABLE}" 'MIN' 'value' '' )"
-#MAX_COLD_VALUE="$( getBorderValue "${TABLE}" 'MAX' 'value' '' )"
-#COLD_VALUE_DELTA=$(( MAX_COLD_VALUE - MIN_COLD_VALUE ))
-
 COLD_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.cold )"
+
 SQL_REQUEST="SELECT create_time ${TIME_OFFSET}, value - ${MIN_COLD_VALUE} from ${TABLE} WHERE create_time BETWEEN (${NOW} - ${HOURS}*3600) and ${NOW} ORDER BY create_time"
 /opt/bin/sqlite3 "${DB_FILE_NAME}" "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
 
@@ -74,27 +69,13 @@ SQL_REQUEST="SELECT create_time ${TIME_OFFSET}, value - ${MIN_COLD_VALUE} from $
 
 TABLE='hot_water'
 
-#MIN_HOT_TIME="$( getBorderValue "${TABLE}" 'MIN' 'create_time' "${TIME_OFFSET}" )"
-#MAX_HOT_TIME="$( getBorderValue "${TABLE}" 'MAX' 'create_time' "${TIME_OFFSET}" )"
-
 MIN_HOT_VALUE="$( getBorderValue "${TABLE}" 'MIN' 'value' '' )"
-#MAX_HOT_VALUE="$( getBorderValue "${TABLE}" 'MAX' 'value' '' )"
-#HOT_VALUE_DELTA=$(( MAX_HOT_VALUE - MIN_HOT_VALUE ))
-
 HOT_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.hot )"
+
 SQL_REQUEST="SELECT create_time ${TIME_OFFSET}, value - ${MIN_HOT_VALUE} from ${TABLE} WHERE create_time BETWEEN (${NOW} - ${HOURS}*3600) and ${NOW} ORDER BY create_time"
 /opt/bin/sqlite3 "${DB_FILE_NAME}" "${SQL_REQUEST}" > "${HOT_OUT_FILE}"
 
 ###################################################################
-
-#MIN_TIME="${MIN_COLD_TIME}"
-#[ "${MIN_HOT_TIME}" -lt "${MIN_TIME}" ] && MIN_TIME="${MIN_HOT_TIME}"
-
-#MAX_TIME="${MAX_COLD_TIME}"
-#[ "${MAX_HOT_TIME}" -gt "${MAX_TIME}" ] && MAX_TIME="${MAX_HOT_TIME}"
-
-#DELTA="${COLD_VALUE_DELTA}"
-#[ "${HOT_VALUE_DELTA}" -gt "${DELTA}" ] && DELTA="${HOT_VALUE_DELTA}"
 
 MIN_UTC_TIME=$(( NOW - HOURS * 3600 ))
 MAX_UTC_TIME=$NOW

@@ -69,7 +69,7 @@ case "${CMD}" in
             fi
 
             echo "setup_new_cold = ${SETUP_COLD}"
-            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings set cold_value = -1"
+            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings SET cold_value = -1"
         fi
 
         SETUP_HOT="$( /opt/bin/sqlite3 "${DB_FILE}" 'SELECT hot_value FROM settings' )"
@@ -85,7 +85,7 @@ case "${CMD}" in
             fi
 
             echo "setup_new_hot = ${SETUP_HOT}"
-            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings set hot_value = -1"
+            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings SET hot_value = -1"
         fi
 
         if [ "${COLD}" != '-1' ]

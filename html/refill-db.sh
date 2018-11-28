@@ -66,6 +66,7 @@ do
     FillWaterSession
 done
 
+echo "INSERT INTO settings(cold_value, hot_value) VALUES(-1, -1);" >> "${DBNAME}.text"
 echo 'COMMIT;' >> "${DBNAME}.text"
 
 cat "${DBNAME}.text" | sqlite3 "${DBNAME}"
