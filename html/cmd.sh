@@ -1,6 +1,9 @@
 #!/opt/bin/bash
 
-DB_FILE='/opt/share/www/jjrpulser/jjrpulser.db'
+CURRENT_DIR="$( dirname "${0}" )"
+CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
+
+source "${CURRENT_DIR}/mysql_settings.sh"
 
 OLD_IFS=$IFS
 IFS='=&'
@@ -35,7 +38,7 @@ case "${CMD}" in
         HOT="$( getParam 'hot' '-1' )"
         if [ "${COLD}" != '-1' -o "${HOT}" != '-1' ]
         then
-            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings set cold_value = ${COLD}, hot_value = ${HOT}"
+            ExecSQL "UPDATE settings SET cold_value = ${COLD}, hot_value = ${HOT}"
             STATUS_OK="$?"
 
             echo "Холодная вода: ${COLD}"
@@ -56,7 +59,14 @@ case "${CMD}" in
         HOT="$( getParam 'hot' '-1' )"
         MAC="$( getParam 'mac' '' )"
 
-        SETUP_COLD="$( /opt/bin/sqlite3 "${DB_FILE}" 'SELECT cold_value FROM settings' )"
+        SETUP_SQL="BEGIN; SELECT concat_ws('|', cold_value, hot_value) FROM settings; UPDATE settings SET cold_value = -1, hot_value = -1; COMMIT;"
+        SETUP_OUT="$( ExecSQL "${SETUP_SQL}" | tail -1 )"
+        SETUP_COLD="$( echo "${SETUP_OUT}" | sed -e 's/|.*$//' )"
+        SETUP_HOT="$( echo "${SETUP_OUT}" | sed -e 's/^.*|//' )"
+
+        echo "SETUP_COLD ${SETUP_COLD}"
+        echo "SETUP_HOT ${SETUP_HOT}"
+
         if [ "${SETUP_COLD}" != '-1' ]
         then
             SETUP_COLD=$(( SETUP_COLD / 10 ))
@@ -69,10 +79,8 @@ case "${CMD}" in
             fi
 
             echo "setup_new_cold = ${SETUP_COLD}"
-            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings SET cold_value = -1"
         fi
 
-        SETUP_HOT="$( /opt/bin/sqlite3 "${DB_FILE}" 'SELECT hot_value FROM settings' )"
         if [ "${SETUP_HOT}" != '-1' ]
         then
             SETUP_HOT=$(( SETUP_HOT / 10 ))
@@ -85,18 +93,17 @@ case "${CMD}" in
             fi
 
             echo "setup_new_hot = ${SETUP_HOT}"
-            /opt/bin/sqlite3 "${DB_FILE}" "UPDATE settings SET hot_value = -1"
         fi
 
         if [ "${COLD}" != '-1' ]
         then
-            /opt/bin/sqlite3 "${DB_FILE}" "INSERT INTO cold_water(value) VALUES(${COLD})"
+            ExecSQL "INSERT INTO cold_water(value) VALUES(${COLD})"
             echo "Записано в базу, холодная вода: ${COLD}"
         fi
 
         if [ "${HOT}" != '-1' ]
         then
-            /opt/bin/sqlite3 "${DB_FILE}" "INSERT INTO hot_water(value) VALUES(${HOT})"
+            ExecSQL "INSERT INTO hot_water(value) VALUES(${HOT})"
             echo "Записано в базу, горячая вода: ${HOT}"
         fi
         ;;
