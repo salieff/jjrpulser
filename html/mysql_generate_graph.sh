@@ -6,28 +6,28 @@ CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
 source "${CURRENT_DIR}/mysql_settings.sh"
 
 case "${1}" in
-    'week' )
-        HOURS=$(( 24 * 7 ))
-        FORMAT_X='%d %b\n%a'
+    'year' )
+        HOURS=$(( 24 * 30 * 12 ))
+        FORMAT_X='%b\n%Y'
         XTICS='autofreq'
         ;;
 
     'month' )
         HOURS=$(( 24 * 30 ))
         FORMAT_X='%d\n%b'
-        XTICS=$(( 60 * 60 * 24 ))
+        XTICS=$(( 3600 * 24 ))
         ;;
 
-    'year' )
-        HOURS=$(( 24 * 30 * 12 ))
-        FORMAT_X='%d %b\n%Y'
+    'week' )
+        HOURS=$(( 24 * 7 ))
+        FORMAT_X='%d %b\n%a'
         XTICS='autofreq'
         ;;
 
-    * )
+    * ) # 'day'
         HOURS=24
-        FORMAT_X='%d %b\n%H:%M'
-        XTICS=$(( 60 * 60 * 2 ))
+        FORMAT_X='%H:%M\n%d.%m'
+        XTICS=$(( 3600 ))
         ;;
 esac
 
@@ -75,7 +75,7 @@ MAX_TIME="$NOW"
 PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
 
 cat << EOF > "${PLOT_FILE}"
-set terminal png truecolor size 1024, 600
+set terminal png truecolor size 1350, 600
 set output "${PNG_FILE_NAME}"
 set datafile separator "|"
 set timefmt '%Y-%m-%d %H:%M:%S'
@@ -83,13 +83,16 @@ set xdata time
 set format x "${FORMAT_X}"
 set style data steps
 set xtics ${XTICS}
+set xtics out
+unset mxtics
+# set ticscale 10
 set grid
 
 set xrange [ "${MIN_TIME}" : "${MAX_TIME}" ]
 # set yrange [ 0 : ${DELTA} ]
 
 plot "${COLD_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#ADD8E6", \
-     "${HOT_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#DDFF69B4", \
+     "${HOT_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#CCFF69B4", \
      "${COLD_OUT_FILE}" using 1:2 title "Cold water" lc rgb "blue" lw 2, \
      "${HOT_OUT_FILE}" using 1:2 title "Hot water" lc rgb "red" lw 2
 EOF

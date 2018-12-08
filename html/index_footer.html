@@ -1,25 +1,32 @@
+        <script>
+            function change(img) {
+                var base_url = window.location.origin;
+                var onImg = base_url + "/jjrpulser/" + img.dataset.src1;
+                var offImg = base_url + "/jjrpulser/" + img.dataset.src2;
+
+                img.src = (img.src == offImg) ? onImg : offImg;
+            }
+
+        </script>
+
         <p>
             <h1>За последние сутки</h1>
-            <img src="mysql_jjrpulser_day.png">
-            <img src="mysql_jjrpulser2_day.png">
+            <img src="mysql_jjrpulser2_day.png" data-src1="mysql_jjrpulser2_day.png" data-src2="mysql_jjrpulser_day.png" onclick="change(this);"/>
         </p>
 
         <p>
             <h1>За последнюю неделю</h1>
-            <img src="mysql_jjrpulser_week.png">
-            <img src="mysql_jjrpulser2_week.png">
+            <img src="mysql_jjrpulser2_week.png" data-src1="mysql_jjrpulser2_week.png" data-src2="mysql_jjrpulser_week.png" onclick="change(this);"/>
         </p>
 
         <p>
             <h1>За последний месяц</h1>
-            <img src="mysql_jjrpulser_month.png">
-            <img src="mysql_jjrpulser2_month.png">
+            <img src="mysql_jjrpulser2_month.png" data-src1="mysql_jjrpulser2_month.png" data-src2="mysql_jjrpulser_month.png" onclick="change(this);"/>
         </p>
 
         <p>
             <h1>За последний год</h1>
-            <img src="mysql_jjrpulser_year.png">
-            <img src="mysql_jjrpulser2_year.png">
+            <img src="mysql_jjrpulser2_year.png" data-src1="mysql_jjrpulser2_year.png" data-src2="mysql_jjrpulser_year.png" onclick="change(this);"/>
         </p>
 
     </center>
