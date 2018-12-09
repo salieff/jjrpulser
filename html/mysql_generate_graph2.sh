@@ -11,8 +11,7 @@ case "${1}" in
         FORMAT_X='%b\n%Y'
         GROUPBY='YEAR(create_time), MONTH(create_time)'
         GROUPWIDTH=$(( 3600 * 24 * 30 ))
-        # XTICS='autofreq'
-        XTICS=$(( 3600 * 24 * 30 ))
+        XTICS='autofreq'
         SELTIME="CONCAT(YEAR(create_time), '-', MONTH(create_time), '-01 00:00:00')"
         ;;
 
@@ -66,14 +65,7 @@ ExecSQL "${SQL_REQUEST}" > "${HOT_OUT_FILE}"
 
 SQL_REQUEST="SELECT DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR)"
 MIN_TIME="$( ExecSQL "${SQL_REQUEST}" )"
-
-if [ "${1}" = 'month' -o "${1}" = 'year' ]
-then
-    SQL_REQUEST="SELECT DATE_ADD('${NOW}', INTERVAL ${GROUPWIDTH} SECOND)"
-    MAX_TIME="$( ExecSQL "${SQL_REQUEST}" )"
-else
-    MAX_TIME="${NOW}"
-fi
+MAX_TIME="${NOW}"
 
 PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
 
@@ -94,8 +86,8 @@ set grid
 
 set xrange [ "${MIN_TIME}" : "${MAX_TIME}" ]
 
-plot "${COLD_OUT_FILE}" using (timecolumn(1) + $(( GROUPWIDTH * 3 / 8 ))):2 title "Cold water" with boxes lc rgb "#770000FF", \
-     "${HOT_OUT_FILE}" using (timecolumn(1) + $(( GROUPWIDTH * 3 / 8 + GROUPWIDTH / 8 ))):2 title "Hot water" with boxes lc rgb "#77FF0000"
+plot "${COLD_OUT_FILE}" using (timecolumn(1)):2 title "Cold water" with boxes lc rgb "#770000FF", \
+     "${HOT_OUT_FILE}" using (timecolumn(1) + $(( GROUPWIDTH / 8 ))):2 title "Hot water" with boxes lc rgb "#77FF0000"
 EOF
 
 /opt/bin/gnuplot "${PLOT_FILE}"
