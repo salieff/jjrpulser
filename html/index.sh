@@ -19,18 +19,21 @@ function printToday() {
 }
 
 function printCounters() {
-    local COLD_VALUE="$( ExecSQL 'SELECT value FROM cold_water ORDER BY create_time DESC LIMIT 1' )"
+    local COLD_SQL="SELECT concat_ws('|', create_time, value) FROM cold_water ORDER BY create_time DESC LIMIT 1"
+    local COLD_OUT="$( ExecSQL "${COLD_SQL}" )"
+    local COLD_TIME="$( echo "${COLD_OUT}" | sed -e 's/|.*$//' )"
+    local COLD_VALUE="$( echo "${COLD_OUT}" | sed -e 's/^.*|//' )"
     local COLD_VALUE_HI=$(( COLD_VALUE / 1000 ))
     local COLD_VALUE_LO=$(( COLD_VALUE - COLD_VALUE_HI * 1000 ))
     local COLD_VALUE_FORMATTED="$( printf "%05d,%03d" $COLD_VALUE_HI $COLD_VALUE_LO )"
 
-    local HOT_VALUE="$( ExecSQL 'SELECT value FROM hot_water ORDER BY create_time DESC LIMIT 1' )"
+    local HOT_SQL="SELECT concat_ws('|', create_time, value) FROM hot_water ORDER BY create_time DESC LIMIT 1"
+    local HOT_OUT="$( ExecSQL "${HOT_SQL}" )"
+    local HOT_TIME="$( echo "${HOT_OUT}" | sed -e 's/|.*$//' )"
+    local HOT_VALUE="$( echo "${HOT_OUT}" | sed -e 's/^.*|//' )"
     local HOT_VALUE_HI=$(( HOT_VALUE / 1000 ))
     local HOT_VALUE_LO=$(( HOT_VALUE - HOT_VALUE_HI * 1000 ))
     local HOT_VALUE_FORMATTED="$( printf "%05d,%03d" $HOT_VALUE_HI $HOT_VALUE_LO )"
-
-    local COLD_TIME="$( ExecSQL 'SELECT MAX(create_time) FROM cold_water' )"
-    local HOT_TIME="$( ExecSQL 'SELECT MAX(create_time) FROM hot_water' )"
 
     echo "
     <p>

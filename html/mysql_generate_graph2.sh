@@ -68,10 +68,11 @@ MIN_TIME="$( ExecSQL "${SQL_REQUEST}" )"
 MAX_TIME="${NOW}"
 
 PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
+TMP_PNG_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.png )"
 
 cat << EOF > "${PLOT_FILE}"
 set terminal png truecolor size 1350, 600
-set output "${PNG_FILE_NAME}"
+set output "${TMP_PNG_FILE}"
 set datafile separator "|"
 set timefmt '%Y-%m-%d %H:%M:%S'
 set xdata time
@@ -91,6 +92,7 @@ plot "${COLD_OUT_FILE}" using (timecolumn(1)):2 title "Cold water" with boxes lc
 EOF
 
 /opt/bin/gnuplot "${PLOT_FILE}"
+mv -f "${TMP_PNG_FILE}" "${PNG_FILE_NAME}"
 
 rm -f "${COLD_OUT_FILE}"
 rm -f "${HOT_OUT_FILE}"
