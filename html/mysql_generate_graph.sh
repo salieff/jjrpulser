@@ -76,7 +76,7 @@ PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
 TMP_PNG_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.png )"
 
 cat << EOF > "${PLOT_FILE}"
-set terminal png truecolor size 1350, 600
+set terminal png truecolor size 1024, 600
 set output "${TMP_PNG_FILE}"
 set datafile separator "|"
 set timefmt '%Y-%m-%d %H:%M:%S'

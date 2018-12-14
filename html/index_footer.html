@@ -1,31 +1,33 @@
-        <script>
-            function changeJJRImage(img) {
-                var base_prefix = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                var img1 = base_prefix + 'mysql_jjrpulser_' + img.dataset.jjrtype + '.png';
-                var img2 = base_prefix + 'mysql_jjrpulser2_' + img.dataset.jjrtype + '.png';
-
-                img.src = (img.src === img1) ? img2 : img1;
-            }
-        </script>
-
         <p>
             <h1>За последние сутки</h1>
-            <img data-jjrtype="day" onclick="changeJJRImage(this);"/>
+            <div class="tooltip">
+                <img data-jjrtype="day" onclick="changeJJRImage(this);"/>
+                <span class="tooltiptext">Click me tender</span>
+            </div>
         </p>
 
         <p>
             <h1>За последнюю неделю</h1>
-            <img data-jjrtype="week" onclick="changeJJRImage(this);"/>
+            <div class="tooltip">
+                <img data-jjrtype="week" onclick="changeJJRImage(this);"/>
+                <span class="tooltiptext">Click me tender</span>
+            </div>
         </p>
 
         <p>
             <h1>За последний месяц</h1>
-            <img data-jjrtype="month" onclick="changeJJRImage(this);"/>
+            <div class="tooltip">
+                <img data-jjrtype="month" onclick="changeJJRImage(this);"/>
+                <span class="tooltiptext">Click me tender</span>
+            </div>
         </p>
 
         <p>
             <h1>За последний год</h1>
-            <img data-jjrtype="year" onclick="changeJJRImage(this);"/>
+            <div class="tooltip">
+                <img data-jjrtype="year" onclick="changeJJRImage(this);"/>
+                <span class="tooltiptext">Click me tender</span>
+            </div>
         </p>
 
     </center>
