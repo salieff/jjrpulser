@@ -43,7 +43,7 @@ LWIP_HTTPRequest::~LWIP_HTTPRequest()
     if (m_state != Closed)
         abort();
 
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::~LWIP_HTTPRequest] I was destructed\r\n");
+    // DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::~LWIP_HTTPRequest] I was destructed\r\n");
 }
 
 void LWIP_HTTPRequest::userPoll()
@@ -306,7 +306,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         Serial.printf("<CLOSED> %lu\r\n", millis());
     */
 
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Enter\r\n", millis());
+    // DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Enter\r\n", millis());
 
     if (p == nullptr || err != ERR_OK)
     {
@@ -315,7 +315,8 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         m_lastError = err;
         m_state = RecvFailed;
 
-        DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] %s %ld\r\n", millis(), p ? "RecvFailed 1" : "Closed by server", m_lastError);
+        if (p)
+            DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] RecvFailed 1 %ld\r\n", millis(), m_lastError);
 
         close();
         if (receivedCorrectHttp())
@@ -347,14 +348,14 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
     tmpBuf[cpLen] = 0;
 
     m_stringForRecv += const_cast<const char *>(tmpBuf);
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] m_stringForRecv = %s\r\n", millis(), m_stringForRecv.c_str());
+    // DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] m_stringForRecv = %s\r\n", millis(), m_stringForRecv.c_str());
 
     free(tmpBuf);
     tcp_recved(m_clientPcb, cpLen);
 
     pbuf_free(p);
 
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Start processing\r\n", millis());
+    // DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Start processing\r\n", millis());
     int ind = -1;
     while ((ind = m_stringForRecv.indexOf('\n')) >= 0)
     {
@@ -362,7 +363,7 @@ err_t LWIP_HTTPRequest::onTcpDataReceived(pbuf *p, err_t err)
         m_stringForRecv.remove(0, ind + 1);
     }
 
-    DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Leave\r\n", millis());
+    // DEBUG_LWIP_HTTPREQUEST("[LWIP_HTTPRequest::onTcpDataReceived %lu] Leave\r\n", millis());
     return ERR_OK;
 }
 

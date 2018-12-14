@@ -2,13 +2,18 @@
 #include "httprequest.h"
 #include "passwords.h"
 
+#include <EEPROM.h>
+
 namespace DataStorage {
 
 Blinker *m_greenLed = NULL;
 Blinker *m_redLed = NULL;
 
-uint32_t m_coldWaterCounter = 0;
-uint32_t m_hotWaterCounter = 0;
+struct {
+    uint32_t m_coldWaterCounter;
+    uint32_t m_hotWaterCounter;
+    uint32_t m_crc32;
+} m_counters;
 
 WiFiEventHandler m_onConnectedHandler = NULL;
 WiFiEventHandler m_onDisconnectedHandler = NULL;
@@ -24,6 +29,62 @@ uint32_t m_httpRequestsListSize = 0;
 LWIP_HTTPRequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
 
 String m_macAddress;
+
+// -----=====+++++oooooOOOOO EEPROM Utilites OOOOOooooo+++++=====-----
+static uint32_t m_CRCTable[16] = {
+    0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
+    0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c, 0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c
+};
+
+uint32_t updateCRC32(uint32_t crc, uint8_t data)
+{
+    uint8_t idx = crc ^ data;
+    crc = m_CRCTable[idx & 0x0f] ^ (crc >> 4);
+
+    idx = crc ^ (data >> 4);
+    crc = m_CRCTable[idx & 0x0f] ^ (crc >> 4);
+
+    return crc;
+}
+
+uint32_t calculateCRC32(const uint8_t *buf, int len)
+{
+    uint32_t crc = ~0L;
+
+    for (int i = 0; i < len; ++i)
+        crc = updateCRC32(crc, *buf++);
+
+    crc = ~crc;
+    return crc;
+}
+
+void loadEEPROMSettings()
+{
+    EEPROM.get(0, m_counters);
+    uint32_t crc = calculateCRC32(reinterpret_cast<uint8_t *>(&m_counters), sizeof(m_counters.m_coldWaterCounter) + sizeof(m_counters.m_hotWaterCounter));
+    if (m_counters.m_crc32 == crc)
+    {
+        Serial.printf("[EEPROM] Loaded COLD  = %u\r\n", m_counters.m_coldWaterCounter);
+        Serial.printf("                HOT   = %u\r\n", m_counters.m_hotWaterCounter);
+        Serial.printf("                CRC32 = 0x%08xu\r\n", m_counters.m_crc32);
+        return;
+    }
+
+    m_counters.m_coldWaterCounter = 0;
+    m_counters.m_hotWaterCounter = 0;
+    m_counters.m_crc32 = 0;
+
+    Serial.printf("[EEPROM] Bad CRC32 set all data to null\r\n");
+}
+
+void saveEEPROMSettings()
+{
+    m_counters.m_crc32 = calculateCRC32(reinterpret_cast<uint8_t *>(&m_counters), sizeof(m_counters.m_coldWaterCounter) + sizeof(m_counters.m_hotWaterCounter));
+    EEPROM.put(0, m_counters);
+    EEPROM.commit();
+}
+
+// -----=====+++++oooooOOOOO End of EEPROM Utilites OOOOOooooo+++++=====-----
 
 // -----=====+++++oooooOOOOO WIFI Callbacks OOOOOooooo+++++=====-----
 /*
@@ -157,12 +218,19 @@ bool checkSetupColdHot(const String &body)
         Serial.print("    >>>> Incoming setup from server:");
 
         if (newCold >= 0)
+        {
             Serial.printf(" COLD = %d", newCold);
+            m_counters.m_coldWaterCounter = newCold;
+        }
 
         if (newHot >= 0)
+        {
             Serial.printf(" HOT = %d", newHot);
+            m_counters.m_hotWaterCounter = newHot;
+        }
 
         Serial.println();
+        saveEEPROMSettings();
         return true;
     }
 
@@ -175,7 +243,8 @@ void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
     ++m_httpReqCommited;
 
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP code : %d\r\n", millis(), code);
-    if (code < 0)
+    Serial.printf("%s\r\n", body.c_str());
+    if (code != 200)
     {
         ++m_httpReqFailed;
         m_redLed->setMode(Blinker::Error);
@@ -186,8 +255,8 @@ void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
 
     if (checkSetupColdHot(body))
         m_greenLed->setMode(Blinker::Setup);
-    else
-        m_greenLed->setMode(Blinker::Work);
+    // else
+    //    m_greenLed->setMode(Blinker::Work);
 }
 
 bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
@@ -259,6 +328,9 @@ void removeAllCompletedHttpRequests()
 // -----=====+++++oooooOOOOO Public interface OOOOOooooo+++++=====-----
 void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
 {
+    EEPROM.begin(sizeof(m_counters));
+    loadEEPROMSettings();
+
     m_macAddress = WiFi.macAddress();
     m_greenLed = gb;
     m_redLed = rb;
@@ -284,18 +356,20 @@ void work()
 void incrementCounters(bool cold, bool hot)
 {
     if (cold)
-        m_coldWaterCounter += WATER_COLD_INCREMENT;
+        m_counters.m_coldWaterCounter += WATER_COLD_INCREMENT;
 
     if (hot)
-        m_hotWaterCounter += WATER_HOT_INCREMENT;
+        m_counters.m_hotWaterCounter += WATER_HOT_INCREMENT;
+
+    saveEEPROMSettings();
 
     Serial.printf("[DataStorage::incrementCounters %lu] Attempting to send HTTP data", millis());
 
     if (cold)
-        Serial.printf(" COLD = %u", m_coldWaterCounter);
+        Serial.printf(" COLD = %u", m_counters.m_coldWaterCounter);
 
     if (hot)
-        Serial.printf(" HOT = %u", m_hotWaterCounter);
+        Serial.printf(" HOT = %u", m_counters.m_hotWaterCounter);
 
     Serial.println();
 
@@ -313,13 +387,13 @@ void incrementCounters(bool cold, bool hot)
     if (cold)
     {
         url += "&cold=";
-        url += String(m_coldWaterCounter);
+        url += String(m_counters.m_coldWaterCounter);
     }
 
     if (hot)
     {
         url += "&hot=";
-        url += String(m_hotWaterCounter);
+        url += String(m_counters.m_hotWaterCounter);
     }
 
     if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))

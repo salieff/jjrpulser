@@ -3,7 +3,7 @@
 const Blinker::BlinkTimes Blinker::m_blinkTimers[Blinker::MaxMode] = {
     {0, 0, 0, Blinker::Off}, // Off
     {3000, 30, 0, Blinker::Off}, // Work
-    {100, 30,  0, Blinker::Off}, // Data
+    {100, 30,  5000, Blinker::Work}, // Data
     {100, 1000, 5000, Blinker::Work}, // Setup
     {500, 500, 0, Blinker::Off}  // Error
 };
