@@ -67,7 +67,7 @@ case "${CMD}" in
         echo "SETUP_COLD ${SETUP_COLD}"
         echo "SETUP_HOT ${SETUP_HOT}"
 
-        if [ "${SETUP_COLD}" != '-1' ]
+        if [ -n "${SETUP_COLD}" -a "${SETUP_COLD}" != '-1' ]
         then
             SETUP_COLD=$(( SETUP_COLD / 10 ))
             SETUP_COLD=$(( SETUP_COLD * 10 ))
@@ -81,7 +81,7 @@ case "${CMD}" in
             echo "setup_new_cold = ${SETUP_COLD}"
         fi
 
-        if [ "${SETUP_HOT}" != '-1' ]
+        if [ -n "${SETUP_HOT}" -a "${SETUP_HOT}" != '-1' ]
         then
             SETUP_HOT=$(( SETUP_HOT / 10 ))
             SETUP_HOT=$(( SETUP_HOT * 10 ))

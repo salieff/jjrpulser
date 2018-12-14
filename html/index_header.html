@@ -4,22 +4,7 @@
   <title>JJR Pulser - счетчики воды</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <link rel="stylesheet" href="index.css">
-  <script>
-    function initJJRImages()
-    {
-        var base_prefix = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-        var allElements = document.getElementsByTagName('img');
-
-        for (var i = 0, n = allElements.length; i < n; i++)
-        {
-            if ('jjrtype' in allElements[i].dataset)
-            {
-                var imgSrc = base_prefix + 'mysql_jjrpulser2_' + allElements[i].dataset.jjrtype + '.png';
-                allElements[i].src = imgSrc;
-            }
-        }
-    }
-  </script>
+  <script type="text/javascript" src="jjrpulser.js"></script>
 </head>
 
 <body bgcolor="#000000" text="#A0A0A0" onload="initJJRImages();">
