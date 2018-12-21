@@ -61,17 +61,10 @@ void LWIP_HTTPRequest::userPoll()
     }
 
     delta = millis() - m_lastPollTimestamp;
-    if (delta < 100) // 10 times per second
+    if (delta < 200) // 5 times per second
         return;
 
     m_lastPollTimestamp = millis();
-
-    delta = millis() - m_constructTimestamp;
-    if (delta >= LWIP_HTTP_REQUEST_TIMEOUT)
-    {
-        fireCallback(!receivedCorrectHttp());
-        return;
-    }
 
     switch(m_state)
     {
