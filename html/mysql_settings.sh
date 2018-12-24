@@ -26,12 +26,12 @@ function WriteSetupCounters() {
 
 function ReadSetupCounters() {
     exec {lock_fd}>/tmp/jjr_sett.lock
-    flock "${lock_fd}"
+    [ "$1" = 'softmode' ] && flock -s "${lock_fd}" || flock "${lock_fd}"
 
     if [ -f "${CURRENT_DIR}/setup_counters.txt" ]
     then
         source "${CURRENT_DIR}/setup_counters.txt"
-        rm -f "${CURRENT_DIR}/setup_counters.txt"
+        [ "$1" = 'softmode' ] || rm -f "${CURRENT_DIR}/setup_counters.txt"
     else
         SETUP_COLD=-1
         SETUP_HOT=-1

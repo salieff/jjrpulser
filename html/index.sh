@@ -68,7 +68,7 @@ function printCounters() {
 }
 
 function printSettings() {
-    ReadSetupCounters
+    ReadSetupCounters 'softmode'
 
     if [ "${SETUP_COLD}" = '-1' -a "${SETUP_HOT}" = '-1' ]
     then
