@@ -8,7 +8,7 @@ extern "C" {
 #include <lwip/ip_addr.h>
 }
 
-#define LWIP_HTTP_REQUEST_TIMEOUT 60000
+#define LWIP_HTTP_REQUEST_TIMEOUT 120000
 
 struct pbuf;
 struct tcp_pcb;
