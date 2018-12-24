@@ -68,10 +68,7 @@ function printCounters() {
 }
 
 function printSettings() {
-    local SETUP_SQL="SELECT concat_ws('|', cold_value, hot_value) FROM settings;"
-    local SETUP_OUT="$( ExecSQL "${SETUP_SQL}" )"
-    local SETUP_COLD="$( echo "${SETUP_OUT}" | sed -e 's/|.*$//' )"
-    local SETUP_HOT="$( echo "${SETUP_OUT}" | sed -e 's/^.*|//' )"
+    ReadSetupCounters
 
     if [ "${SETUP_COLD}" = '-1' -a "${SETUP_HOT}" = '-1' ]
     then

@@ -84,8 +84,10 @@ set xtics out
 unset mxtics
 # set ticscale 10
 set grid
+set timestamp
 
 set xrange [ "${MIN_TIME}" : "${MAX_TIME}" ]
+set yrange [ 0 : * ]
 
 plot "${COLD_OUT_FILE}" using (timecolumn(1)):2 title "Cold water" with boxes lc rgb "#770000FF", \
      "${HOT_OUT_FILE}" using (timecolumn(1) + $(( GROUPWIDTH / 8 ))):2 title "Hot water" with boxes lc rgb "#77FF0000"

@@ -88,9 +88,10 @@ set xtics out
 unset mxtics
 # set ticscale 10
 set grid
+set timestamp
 
 set xrange [ "${MIN_TIME}" : "${MAX_TIME}" ]
-# set yrange [ 0 : ${DELTA} ]
+set yrange [ 0 : * ]
 
 plot "${COLD_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#ADD8E6", \
      "${HOT_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#CCFF69B4", \

@@ -38,19 +38,13 @@ case "${CMD}" in
         HOT="$( getParam 'hot' '-1' )"
         if [ "${COLD}" != '-1' -o "${HOT}" != '-1' ]
         then
-            ExecSQL "UPDATE settings SET cold_value = ${COLD}, hot_value = ${HOT}"
-            STATUS_OK="$?"
+            WriteSetupCounters "${COLD}" "${HOT}"
 
             echo "Холодная вода: ${COLD}"
             echo "Горячая вода: ${HOT}"
 
-            if [ "${STATUS_OK}" = '0' ]
-            then
-                echo 'Настройки записаны для отправки в устройство'
-                echo 'Устройство заберет их при следующей передаче показаний'
-            else
-                echo 'Ошибка записи настроек в базу'
-            fi
+            echo 'Настройки записаны для отправки в устройство'
+            echo 'Устройство заберет их при следующей передаче показаний'
         fi
         ;;
 
@@ -59,10 +53,7 @@ case "${CMD}" in
         HOT="$( getParam 'hot' '-1' )"
         MAC="$( getParam 'mac' '' )"
 
-        SETUP_SQL="BEGIN; SELECT concat_ws('|', cold_value, hot_value) FROM settings; UPDATE settings SET cold_value = -1, hot_value = -1; COMMIT;"
-        SETUP_OUT="$( ExecSQL "${SETUP_SQL}" | tail -1 )"
-        SETUP_COLD="$( echo "${SETUP_OUT}" | sed -e 's/|.*$//' )"
-        SETUP_HOT="$( echo "${SETUP_OUT}" | sed -e 's/^.*|//' )"
+        ReadSetupCounters
 
         echo "SETUP_COLD ${SETUP_COLD}"
         echo "SETUP_HOT ${SETUP_HOT}"
@@ -95,13 +86,13 @@ case "${CMD}" in
             echo "setup_new_hot = ${SETUP_HOT}"
         fi
 
-        if [ "${COLD}" != '-1' ]
+        if [ -n "${COLD}" -a "${COLD}" != '-1' ]
         then
             ExecSQL "INSERT INTO cold_water(value) VALUES(${COLD})"
             echo "Записано в базу, холодная вода: ${COLD}"
         fi
 
-        if [ "${HOT}" != '-1' ]
+        if [ -n "${HOT}" -a "${HOT}" != '-1' ]
         then
             ExecSQL "INSERT INTO hot_water(value) VALUES(${HOT})"
             echo "Записано в базу, горячая вода: ${HOT}"
