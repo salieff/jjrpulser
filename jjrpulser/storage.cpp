@@ -13,17 +13,31 @@ struct {
     uint32_t m_coldWaterCounter;
     uint32_t m_hotWaterCounter;
     uint32_t m_crc32;
-} m_counters;
+} m_counters = {0, 0, 0};
 
-WiFiEventHandler m_onConnectedHandler = NULL;
-WiFiEventHandler m_onDisconnectedHandler = NULL;
-WiFiEventHandler m_onAuthModeChangedHandler = NULL;
-WiFiEventHandler m_onGotIPHandler = NULL;
-WiFiEventHandler m_onDHCPTimeoutHandler = NULL;
+struct {
+    unsigned long m_lastMillis;
 
-uint32_t m_httpReqSent = 0;
-uint32_t m_httpReqCommited = 0;
-uint32_t m_httpReqFailed = 0;
+    unsigned long m_upTimeDays;
+    unsigned long m_upTimeHours;
+    unsigned long m_upTimeMinutes;
+    unsigned long m_upTimeSeconds;
+    unsigned long m_upTimeMillis;
+
+    uint32_t m_lastFreeHeap;
+
+    uint32_t m_httpReqSent;
+    uint32_t m_httpReqCommited;
+    uint32_t m_httpReqFailed;
+} m_statistics = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+struct {
+    WiFiEventHandler m_onConnectedHandler;
+    WiFiEventHandler m_onDisconnectedHandler;
+    WiFiEventHandler m_onAuthModeChangedHandler;
+    WiFiEventHandler m_onGotIPHandler;
+    WiFiEventHandler m_onDHCPTimeoutHandler;
+} m_wifiHandlers = {NULL, NULL, NULL, NULL, NULL};
 
 uint32_t m_httpRequestsListSize = 0;
 LWIP_HTTPRequest *m_httpRequestsList[HTTP_CONN_LIST_MAX];
@@ -240,13 +254,15 @@ bool checkSetupColdHot(const String &body)
 void httpStateChanged(void *, LWIP_HTTPRequest *r, int code, const String &body)
 {
     r->markForDelete();
-    ++m_httpReqCommited;
+
+    if (code >= 0)
+        ++m_statistics.m_httpReqCommited;
 
     Serial.printf("[DataStorage::onHTTPStateChanged %lu] HTTP code : %d\r\n", millis(), code);
     Serial.printf("%s\r\n", body.c_str());
     if (code != 200)
     {
-        ++m_httpReqFailed;
+        ++m_statistics.m_httpReqFailed;
         m_redLed->setMode(Blinker::Error);
         return;
     }
@@ -335,11 +351,11 @@ void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
     m_greenLed = gb;
     m_redLed = rb;
 
-    m_onConnectedHandler = WiFi.onStationModeConnected(onConnected);
-    m_onDisconnectedHandler = WiFi.onStationModeDisconnected(onDisconnected);
-    m_onAuthModeChangedHandler = WiFi.onStationModeAuthModeChanged(onAuthModeChanged);
-    m_onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
-    m_onDHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(onDHCPTimeout);
+    m_wifiHandlers.m_onConnectedHandler = WiFi.onStationModeConnected(onConnected);
+    m_wifiHandlers.m_onDisconnectedHandler = WiFi.onStationModeDisconnected(onDisconnected);
+    m_wifiHandlers.m_onAuthModeChangedHandler = WiFi.onStationModeAuthModeChanged(onAuthModeChanged);
+    m_wifiHandlers.m_onGotIPHandler = WiFi.onStationModeGotIP(onGotIP);
+    m_wifiHandlers.m_onDHCPTimeoutHandler = WiFi.onStationModeDHCPTimeout(onDHCPTimeout);
 
     Serial.printf("[WIFI] Attempting to connect to %s\r\n", ssid);
     WiFi.begin(ssid, passwd);
@@ -398,7 +414,7 @@ void incrementCounters(bool cold, bool hot)
 
     if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))
     {
-        ++m_httpReqSent;
+        ++m_statistics.m_httpReqSent;
         m_greenLed->setMode(Blinker::Data);
     }
     else
@@ -409,9 +425,9 @@ void incrementCounters(bool cold, bool hot)
 
 void printStatistics()
 {
-    Serial.printf("HTTP Requests sent: %u\r\n", m_httpReqSent);
-    Serial.printf("HTTP Requests commited: %u\r\n", m_httpReqCommited);
-    Serial.printf("HTTP Requests failed: %u\r\n", m_httpReqFailed);
+    Serial.printf("HTTP Requests sent: %u\r\n", m_statistics.m_httpReqSent);
+    Serial.printf("HTTP Requests commited: %u\r\n", m_statistics.m_httpReqCommited);
+    Serial.printf("HTTP Requests failed: %u\r\n", m_statistics.m_httpReqFailed);
     Serial.printf("HTTP Queue size %u\r\n", m_httpRequestsListSize);
 }
 // -----=====+++++oooooOOOOO End of Public interface OOOOOooooo+++++=====-----

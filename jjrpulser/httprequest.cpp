@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 #ifndef DEBUG_LWIP_HTTPREQUEST
-#define DEBUG_LWIP_HTTPREQUEST(...)
+#define DEBUG_LWIP_HTTPREQUEST(...) {}
 #endif
 
 LWIP_HTTPRequest::LWIP_HTTPRequest(const char *host, uint16_t port, const char *url, ResultCallback cb, void *cbArg)
