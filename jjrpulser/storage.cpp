@@ -4,6 +4,9 @@
 
 #include <EEPROM.h>
 
+// 15 minutes in milliseconds
+#define STATISTICS_SEND_PERIOD (15 * 60 * 1000)
+
 namespace DataStorage {
 
 Blinker *m_greenLed = NULL;
@@ -288,6 +291,7 @@ bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
     m_httpRequestsList[m_httpRequestsListSize] = ahr;
     ++m_httpRequestsListSize;
 
+    ++m_statistics.m_httpReqSent
     return true;
 }
 
@@ -341,11 +345,74 @@ void removeAllCompletedHttpRequests()
 }
 // -----=====+++++oooooOOOOO End of HTTP requests list functions OOOOOooooo+++++=====-----
 
+// -----=====+++++oooooOOOOO Statistics helpers OOOOOooooo+++++=====-----
+void checkStatistics()
+{
+    unsigned long timestamp = millis();
+    unsigned long delta = timestamp - m_statistics.m_lastMillis;
+    if (delta < STATISTICS_SEND_PERIOD)
+        return;
+
+    m_statistics.m_lastMillis = timestamp;
+
+    m_statistics.m_upTimeMillis += delta;
+
+    m_statistics.m_upTimeSeconds += m_statistics.m_upTimeMillis / 1000ul;
+    m_statistics.m_upTimeMillis %= 1000ul;
+
+    m_statistics.m_upTimeMinutes += m_statistics.m_upTimeSeconds / 60ul;
+    m_statistics.m_upTimeSeconds %= 60ul;
+
+    m_statistics.m_upTimeHours += m_statistics.m_upTimeMinutes / 60ul;
+    m_statistics.m_upTimeMinutes %= 60ul;
+
+    m_statistics.m_upTimeDays += m_statistics.m_upTimeHours / 24ul;
+    m_statistics.m_upTimeHours %= 24ul;
+
+    m_statistics.m_lastFreeHeap = ESP.getFreeHeap();
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("[DataStorage::checkStatistics] No Wi-Fi connections available, can't send data");
+        m_redLed->setMode(Blinker::Error);
+        return;
+    }
+
+    String url(JJR_PULSER_SERVER_URL);
+    url += "?cmd=statistics&mac=";
+    url += m_macAddress;
+
+    url += "&uptime_days=";
+    url += String(m_statistics.m_upTimeDays);
+
+/*
+    unsigned long m_upTimeDays;
+    unsigned long m_upTimeHours;
+    unsigned long m_upTimeMinutes;
+    unsigned long m_upTimeSeconds;
+    unsigned long m_upTimeMillis;
+
+    uint32_t m_lastFreeHeap;
+
+    uint32_t m_httpReqSent;
+    uint32_t m_httpReqCommited;
+    uint32_t m_httpReqFailed;
+*/
+
+    if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))
+        m_greenLed->setMode(Blinker::Data);
+    else
+        m_redLed->setMode(Blinker::Error);
+}
+// -----=====+++++oooooOOOOO End of Statistics helpers OOOOOooooo+++++=====-----
+
 // -----=====+++++oooooOOOOO Public interface OOOOOooooo+++++=====-----
 void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
 {
     EEPROM.begin(sizeof(m_counters));
     loadEEPROMSettings();
+
+    m_statistics.m_lastFreeHeap = ESP.getFreeHeap();
 
     m_macAddress = WiFi.macAddress();
     m_greenLed = gb;
@@ -366,6 +433,7 @@ void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
 
 void work()
 {
+    checkStatistics();
     removeAllCompletedHttpRequests();
 }
 
@@ -413,14 +481,9 @@ void incrementCounters(bool cold, bool hot)
     }
 
     if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))
-    {
-        ++m_statistics.m_httpReqSent;
         m_greenLed->setMode(Blinker::Data);
-    }
     else
-    {
         m_redLed->setMode(Blinker::Error);
-    }
 }
 
 void printStatistics()
