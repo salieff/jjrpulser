@@ -7,6 +7,10 @@ extern "C" {
 
 #include <errno.h>
 
+#ifndef ERR_IS_FATAL
+#define ERR_IS_FATAL(e) ((e) < ERR_WOULDBLOCK)
+#endif
+
 #ifdef DEBUG_ESP_HTTP_CLIENT
 #ifdef DEBUG_ESP_PORT
 #define DEBUG_LWIP_HTTPREQUEST(...) DEBUG_ESP_PORT.printf( __VA_ARGS__ )
@@ -90,9 +94,9 @@ void LWIP_HTTPRequest::userPoll()
 
     case CloseFailed :
         if (ERR_IS_FATAL(m_lastError))
-            close();
-        else
             abort();
+        else
+            close();
 
         break;
 

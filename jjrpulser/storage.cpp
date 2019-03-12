@@ -1,11 +1,10 @@
 #include "storage.h"
 #include "httprequest.h"
+#include "blinker.h"
 #include "passwords.h"
 
+#include <ESP8266WiFi.h>
 #include <EEPROM.h>
-
-// 15 minutes in milliseconds
-#define STATISTICS_SEND_PERIOD (15 * 60 * 1000)
 
 namespace DataStorage {
 
@@ -27,7 +26,7 @@ struct {
     unsigned long m_upTimeSeconds;
     unsigned long m_upTimeMillis;
 
-    uint32_t m_lastFreeHeap;
+    uint32_t m_freeHeap;
 
     uint32_t m_httpReqSent;
     uint32_t m_httpReqCommited;
@@ -291,7 +290,7 @@ bool addToHttpRequestsList(const char *host, uint16_t port, String &url)
     m_httpRequestsList[m_httpRequestsListSize] = ahr;
     ++m_httpRequestsListSize;
 
-    ++m_statistics.m_httpReqSent
+    ++m_statistics.m_httpReqSent;
     return true;
 }
 
@@ -346,14 +345,14 @@ void removeAllCompletedHttpRequests()
 // -----=====+++++oooooOOOOO End of HTTP requests list functions OOOOOooooo+++++=====-----
 
 // -----=====+++++oooooOOOOO Statistics helpers OOOOOooooo+++++=====-----
-void checkStatistics()
+void refreshStatistics(unsigned long delta = 0)
 {
-    unsigned long timestamp = millis();
-    unsigned long delta = timestamp - m_statistics.m_lastMillis;
-    if (delta < STATISTICS_SEND_PERIOD)
-        return;
-
-    m_statistics.m_lastMillis = timestamp;
+    if (delta == 0)
+    {
+        unsigned long timestamp = millis();
+        delta = timestamp - m_statistics.m_lastMillis;
+        m_statistics.m_lastMillis = timestamp;
+    }
 
     m_statistics.m_upTimeMillis += delta;
 
@@ -369,40 +368,83 @@ void checkStatistics()
     m_statistics.m_upTimeDays += m_statistics.m_upTimeHours / 24ul;
     m_statistics.m_upTimeHours %= 24ul;
 
-    m_statistics.m_lastFreeHeap = ESP.getFreeHeap();
+    m_statistics.m_freeHeap = ESP.getFreeHeap();
+}
 
-    if (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.println("[DataStorage::checkStatistics] No Wi-Fi connections available, can't send data");
-        m_redLed->setMode(Blinker::Error);
-        return;
-    }
-
+String createStatisticsUrl()
+{
     String url(JJR_PULSER_SERVER_URL);
+
     url += "?cmd=statistics&mac=";
     url += m_macAddress;
 
     url += "&uptime_days=";
     url += String(m_statistics.m_upTimeDays);
 
-/*
-    unsigned long m_upTimeDays;
-    unsigned long m_upTimeHours;
-    unsigned long m_upTimeMinutes;
-    unsigned long m_upTimeSeconds;
-    unsigned long m_upTimeMillis;
+    url += "&uptime_hours=";
+    url += String(m_statistics.m_upTimeHours);
 
-    uint32_t m_lastFreeHeap;
+    url += "&uptime_minutes=";
+    url += String(m_statistics.m_upTimeMinutes);
 
-    uint32_t m_httpReqSent;
-    uint32_t m_httpReqCommited;
-    uint32_t m_httpReqFailed;
-*/
+    url += "&uptime_seconds=";
+    url += String(m_statistics.m_upTimeSeconds);
+
+    url += "&uptime_millis=";
+    url += String(m_statistics.m_upTimeMillis);
+
+    url += "&free_heap=";
+    url += String(m_statistics.m_freeHeap);
+
+    url += "&http_req_sent=";
+    url += String(m_statistics.m_httpReqSent);
+
+    url += "&http_req_commited=";
+    url += String(m_statistics.m_httpReqCommited);
+
+    url += "&http_req_failed=";
+    url += String(m_statistics.m_httpReqFailed);
+
+    return url;
+}
+
+void sendStatistics()
+{
+    unsigned long timestamp = millis();
+    unsigned long delta = timestamp - m_statistics.m_lastMillis;
+    if (delta < STATISTICS_SEND_PERIOD)
+        return;
+
+    m_statistics.m_lastMillis = timestamp;
+    refreshStatistics(delta);
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("[DataStorage::sendStatistics] No Wi-Fi connections available, can't send data");
+        m_redLed->setMode(Blinker::Error);
+        return;
+    }
+
+    String url = createStatisticsUrl();
 
     if (addToHttpRequestsList(JJR_PULSER_SERVER, JJR_PULSER_SERVER_PORT, url))
         m_greenLed->setMode(Blinker::Data);
     else
         m_redLed->setMode(Blinker::Error);
+}
+
+void printStatistics()
+{
+    uint32_t lastFreeHeap = m_statistics.m_freeHeap;
+
+    refreshStatistics();
+
+    Serial.printf("Uptime: %lu days %02lu:%02lu:%02lu\r\n", m_statistics.m_upTimeDays, m_statistics.m_upTimeHours, m_statistics.m_upTimeMinutes, m_statistics.m_upTimeSeconds);
+    Serial.printf("FREEHeap: %u; DIFF %d\n", m_statistics.m_freeHeap, m_statistics.m_freeHeap - lastFreeHeap);
+    Serial.printf("HTTP Requests sent: %u\r\n", m_statistics.m_httpReqSent);
+    Serial.printf("HTTP Requests commited: %u\r\n", m_statistics.m_httpReqCommited);
+    Serial.printf("HTTP Requests failed: %u\r\n", m_statistics.m_httpReqFailed);
+    Serial.printf("HTTP Queue size %u\r\n", m_httpRequestsListSize);
 }
 // -----=====+++++oooooOOOOO End of Statistics helpers OOOOOooooo+++++=====-----
 
@@ -412,7 +454,7 @@ void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
     EEPROM.begin(sizeof(m_counters));
     loadEEPROMSettings();
 
-    m_statistics.m_lastFreeHeap = ESP.getFreeHeap();
+    m_statistics.m_freeHeap = ESP.getFreeHeap();
 
     m_macAddress = WiFi.macAddress();
     m_greenLed = gb;
@@ -433,7 +475,7 @@ void setup(const char *ssid, const char *passwd, Blinker *gb, Blinker *rb)
 
 void work()
 {
-    checkStatistics();
+    sendStatistics();
     removeAllCompletedHttpRequests();
 }
 
@@ -484,14 +526,6 @@ void incrementCounters(bool cold, bool hot)
         m_greenLed->setMode(Blinker::Data);
     else
         m_redLed->setMode(Blinker::Error);
-}
-
-void printStatistics()
-{
-    Serial.printf("HTTP Requests sent: %u\r\n", m_statistics.m_httpReqSent);
-    Serial.printf("HTTP Requests commited: %u\r\n", m_statistics.m_httpReqCommited);
-    Serial.printf("HTTP Requests failed: %u\r\n", m_statistics.m_httpReqFailed);
-    Serial.printf("HTTP Queue size %u\r\n", m_httpRequestsListSize);
 }
 // -----=====+++++oooooOOOOO End of Public interface OOOOOooooo+++++=====-----
 
