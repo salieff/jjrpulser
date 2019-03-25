@@ -1,4 +1,4 @@
-#! /opt/bin/bash
+#!/bin/bash
 
 CURRENT_DIR="$( dirname "${0}" )"
 CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
@@ -33,7 +33,7 @@ esac
 
 PNG_FILE_NAME="${CURRENT_DIR}/mysql_jjrpulser_${1}.png"
 
-NOW=$( /opt/bin/date '+%F %T' )
+NOW=$( /bin/date '+%F %T' )
 
 # $1 - table name
 # $2 - method, like MIN or MAX
@@ -51,7 +51,7 @@ function getBorderValue() {
 TABLE='cold_water'
 
 MIN_COLD_VALUE="$( getBorderValue "${TABLE}" 'MIN' 'value' )"
-COLD_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.cold )"
+COLD_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.cold )"
 
 SQL_REQUEST="SELECT concat_ws('|', create_time, value - ${MIN_COLD_VALUE}) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
@@ -61,7 +61,7 @@ ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
 TABLE='hot_water'
 
 MIN_HOT_VALUE="$( getBorderValue "${TABLE}" 'MIN' 'value' )"
-HOT_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.hot )"
+HOT_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.hot )"
 
 SQL_REQUEST="SELECT concat_ws('|', create_time, value - ${MIN_HOT_VALUE}) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${HOT_OUT_FILE}"
@@ -72,8 +72,8 @@ SQL_REQUEST="SELECT DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR)"
 MIN_TIME="$( ExecSQL "${SQL_REQUEST}" )"
 MAX_TIME="$NOW"
 
-PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
-TMP_PNG_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.png )"
+PLOT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.plot )"
+TMP_PNG_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.png )"
 
 cat << EOF > "${PLOT_FILE}"
 set terminal png truecolor size 1024, 600
@@ -86,6 +86,7 @@ set style data steps
 set xtics ${XTICS}
 set xtics out
 unset mxtics
+set tics font ", 8"
 # set ticscale 10
 set grid
 set timestamp
@@ -99,7 +100,7 @@ plot "${COLD_OUT_FILE}" using 1:2 notitle with impulses lc rgb "#ADD8E6", \
      "${HOT_OUT_FILE}" using 1:2 title "Hot water" lc rgb "red" lw 2
 EOF
 
-/opt/bin/gnuplot "${PLOT_FILE}"
+/usr/bin/gnuplot "${PLOT_FILE}"
 mv -f "${TMP_PNG_FILE}" "${PNG_FILE_NAME}"
 
 rm -f "${COLD_OUT_FILE}"

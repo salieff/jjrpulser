@@ -1,4 +1,7 @@
-#! /opt/bin/bash
+#!/bin/bash
+
+CURRENT_DIR="$( dirname "${0}" )"
+CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
 
 source "${CURRENT_DIR}/mysql_settings.sh"
 

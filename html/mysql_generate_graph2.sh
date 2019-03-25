@@ -1,4 +1,4 @@
-#! /opt/bin/bash
+#!/bin/bash
 
 CURRENT_DIR="$( dirname "${0}" )"
 CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
@@ -45,10 +45,10 @@ esac
 
 PNG_FILE_NAME="${CURRENT_DIR}/mysql_jjrpulser2_${1}.png"
 
-NOW=$( /opt/bin/date '+%F %T' )
+NOW=$( /bin/date '+%F %T' )
 
 TABLE='cold_water'
-COLD_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.cold )"
+COLD_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.cold )"
 
 SQL_REQUEST="SELECT concat_ws('|', ${SELTIME}, MAX(value) - MIN(value)) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
@@ -56,7 +56,7 @@ ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
 ###################################################################
 
 TABLE='hot_water'
-HOT_OUT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.hot )"
+HOT_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.hot )"
 
 SQL_REQUEST="SELECT concat_ws('|', ${SELTIME}, MAX(value) - MIN(value)) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${HOT_OUT_FILE}"
@@ -67,8 +67,8 @@ SQL_REQUEST="SELECT DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR)"
 MIN_TIME="$( ExecSQL "${SQL_REQUEST}" )"
 MAX_TIME="${NOW}"
 
-PLOT_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.plot )"
-TMP_PNG_FILE="$( /opt/bin/mktemp --tmpdir='/opt/tmp' pulser_data_XXXXXXXXXX.png )"
+PLOT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.plot )"
+TMP_PNG_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.png )"
 
 cat << EOF > "${PLOT_FILE}"
 set terminal png truecolor size 1024, 600
@@ -82,6 +82,7 @@ set style fill solid
 set xtics ${XTICS}
 set xtics out
 unset mxtics
+set tics font ", 8"
 # set ticscale 10
 set grid
 set timestamp
@@ -93,7 +94,7 @@ plot "${COLD_OUT_FILE}" using (timecolumn(1)):2 title "Cold water" with boxes lc
      "${HOT_OUT_FILE}" using (timecolumn(1) + $(( GROUPWIDTH / 8 ))):2 title "Hot water" with boxes lc rgb "#77FF0000"
 EOF
 
-/opt/bin/gnuplot "${PLOT_FILE}"
+/usr/bin/gnuplot "${PLOT_FILE}"
 mv -f "${TMP_PNG_FILE}" "${PNG_FILE_NAME}"
 
 rm -f "${COLD_OUT_FILE}"

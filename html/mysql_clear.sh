@@ -1,11 +1,12 @@
-#!/opt/bin/bash
+#!/bin/bash
 
 CURRENT_DIR="$( dirname "${0}" )"
 CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
 
 source "${CURRENT_DIR}/mysql_settings.sh"
 
-/opt/bin/mysql -e "BEGIN;
+/usr/bin/mysql -u "${MYSQL_USER}" \
+               -e "BEGIN;
                    DROP DATABASE IF EXISTS ${MYSQL_DB_NAME};
                    CREATE DATABASE ${MYSQL_DB_NAME};
                    SHOW DATABASES;

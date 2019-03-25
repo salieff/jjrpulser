@@ -2,15 +2,15 @@ CURRENT_DIR="$( dirname "${0}" )"
 CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
 
 MYSQL_DB_NAME='jjrpulser'
-MYSQL_USER=''
+MYSQL_USER='www-data'
 MYSQL_PASSWORD=''
 
 function ExecSQL() {
-    /opt/bin/mysql -sN "${MYSQL_DB_NAME}" -e "$1" 2>>"/opt/tmp/${MYSQL_DB_NAME}_debug.log"
+    /usr/bin/mysql -u "${MYSQL_USER}" -sN "${MYSQL_DB_NAME}" -e "$1" 2>>"/tmp/${MYSQL_DB_NAME}_debug.log"
     MYSQL_RET_ERR_CODE="$?"
     if [ "${MYSQL_RET_ERR_CODE}" != '0' ]
     then
-        echo "[$( date '+%F %T' ) ${MYSQL_DB_NAME} ${MYSQL_RET_ERR_CODE}] $1" >>"/opt/tmp/${MYSQL_DB_NAME}_debug.log"
+        echo "[$( date '+%F %T' ) ${MYSQL_DB_NAME} ${MYSQL_RET_ERR_CODE}] $1" >>"/tmp/${MYSQL_DB_NAME}_debug.log"
     fi
 }
 

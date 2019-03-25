@@ -1,4 +1,4 @@
-#!/opt/bin/bash
+#!/bin/bash
 
 CURRENT_DIR="$( dirname "${0}" )"
 CURRENT_DIR="$( cd "${CURRENT_DIR}"; pwd )"
@@ -14,7 +14,7 @@ function printHTTPHeaders() {
 }
 
 function printToday() {
-    local TODAY_TM="$( /opt/bin/date '+%F %T' )"
+    local TODAY_TM="$( /bin/date '+%F %T' )"
     echo "<p><h2>Сегодня: ${TODAY_TM}</h2></p>"
 }
 
