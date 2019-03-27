@@ -117,6 +117,17 @@ case "${CMD}" in
                         "${HTTPREQSENT}" \
                         "${HTTPREQCOMMITED}" \
                         "${HTTPREQFAILED}"
+
+        echo "Статистика устройства от ${STATDATETIME}"
+        echo "Дней без перезагрузки: ${UPTIMEDAYS}"
+        echo "Часов без перезагрузки: ${UPTIMEHOURS}"
+        echo "Минут без перезагрузки: ${UPTIMEMINUTES}"
+        echo "Секунд без перезагрузки: ${UPTIMESECONDS}"
+        echo "Миллисекунд без перезагрузки: ${UPTIMEMILLIS}"
+        echo "Свободно ОЗУ: ${FREEHEAP}"
+        echo "Послано запросов: ${HTTPREQSENT}"
+        echo "Получено ответов: ${HTTPREQCOMMITED}"
+        echo "Не дошло, или ответ с ошибкой: ${HTTPREQFAILED}"
         ;;
 
     * )

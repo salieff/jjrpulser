@@ -53,7 +53,9 @@ function WriteStatistics() {
     echo "HTTPREQSENT=$7" >> "${CURRENT_DIR}/statistics.txt"
     echo "HTTPREQCOMMITED=$8" >> "${CURRENT_DIR}/statistics.txt"
     echo "HTTPREQFAILED=$9" >> "${CURRENT_DIR}/statistics.txt"
-    echo "STATDATETIME=\"$( /bin/date '+%F %T' )\"" >> "${CURRENT_DIR}/statistics.txt"
+
+    STATDATETIME="$( /bin/date '+%F %T' )"
+    echo "STATDATETIME=\"${STATDATETIME}\"" >> "${CURRENT_DIR}/statistics.txt"
 
     flock -u "${lock_fd}"
 }
