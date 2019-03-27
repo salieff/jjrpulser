@@ -67,13 +67,21 @@ function printCounters() {
     </p>"
 }
 
+function printIntTableCell() {
+    if [ -n "$2" -a "$2" != '-1' ]
+    then
+        echo "
+        <tr>
+            <td>$1</td>
+            <td>$2</td>
+        </tr>"
+    fi
+}
+
 function printSettings() {
     ReadSetupCounters 'softmode'
 
-    if [ "${SETUP_COLD}" = '-1' -a "${SETUP_HOT}" = '-1' ]
-    then
-        return
-    fi
+    [ "${SETUP_COLD}" = '-1' -a "${SETUP_HOT}" = '-1' ] && return
 
     echo '
     <p>
@@ -81,23 +89,35 @@ function printSettings() {
         <legend>Настройки, ожидающие отправки в устройство</legend>
             <table>'
 
-    if [ "${SETUP_COLD}" != '-1' -o "${SETUP_HOT}" != '-1' ]
-    then
-        echo "
-        <tr>
-            <td>Холодная вода:</td>
-            <td>${SETUP_COLD}</td>
-        </tr>"
-    fi
+    printIntTableCell "Холодная вода:" "${SETUP_COLD}"
+    printIntTableCell "Горячая вода:" "${SETUP_HOT}"
 
-    if [ "${SETUP_COLD}" != '-1' -o "${SETUP_HOT}" != '-1' ]
-    then
-        echo "
-        <tr>
-            <td>Горячая вода:</td>
-            <td>${SETUP_HOT}</td>
-        </tr>"
-    fi
+    echo '
+        </table>
+    </fieldset>
+    </p>'
+}
+
+function printStatistics() {
+    ReadStatistics
+
+    [ "${UPTIMEDAYS}" = '-1' ] && return
+
+    echo "
+    <p>
+    <fieldset class=\"fieldset-auto-width\">
+        <legend>Статистика устройства от ${STATDATETIME}</legend>
+            <table>"
+
+    printIntTableCell "Дней без перезагрузки:" "${UPTIMEDAYS}"
+    printIntTableCell "Часов без перезагрузки:" "${UPTIMEHOURS}"
+    printIntTableCell "Минут без перезагрузки:" "${UPTIMEMINUTES}"
+    printIntTableCell "Секунд без перезагрузки:" "${UPTIMESECONDS}"
+    printIntTableCell "Миллисекунд без перезагрузки:" "${UPTIMEMILLIS}"
+    printIntTableCell "Свободно ОЗУ:" "${FREEHEAP}"
+    printIntTableCell "Послано запросов:" "${HTTPREQSENT}"
+    printIntTableCell "Получено ответов:" "${HTTPREQCOMMITED}"
+    printIntTableCell "Не дошло, или ответ с ошибкой:" "${HTTPREQFAILED}"
 
     echo '
         </table>
@@ -111,4 +131,6 @@ printToday
 printCounters
 cat index_input.html
 printSettings
+cat index_graphs.html
+printStatistics
 cat index_footer.html

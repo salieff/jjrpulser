@@ -55,9 +55,6 @@ case "${CMD}" in
 
         ReadSetupCounters
 
-        echo "SETUP_COLD ${SETUP_COLD}"
-        echo "SETUP_HOT ${SETUP_HOT}"
-
         if [ -n "${SETUP_COLD}" -a "${SETUP_COLD}" != '-1' ]
         then
             SETUP_COLD=$(( SETUP_COLD / 10 ))
