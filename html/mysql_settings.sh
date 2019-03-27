@@ -15,7 +15,7 @@ function ExecSQL() {
 }
 
 function WriteSetupCounters() {
-    exec {lock_fd}>/tmp/jjr_sett.lock
+    exec {lock_fd}>"${CURRENT_DIR}/jjr_sett.lock"
     flock "${lock_fd}"
 
     echo "SETUP_COLD=$1" > "${CURRENT_DIR}/setup_counters.txt"
@@ -25,7 +25,7 @@ function WriteSetupCounters() {
 }
 
 function ReadSetupCounters() {
-    exec {lock_fd}>/tmp/jjr_sett.lock
+    exec {lock_fd}>"${CURRENT_DIR}/jjr_sett.lock"
     [ "$1" = 'softmode' ] && flock -s "${lock_fd}" || flock "${lock_fd}"
 
     if [ -f "${CURRENT_DIR}/setup_counters.txt" ]
@@ -35,6 +35,46 @@ function ReadSetupCounters() {
     else
         SETUP_COLD=-1
         SETUP_HOT=-1
+    fi
+
+    flock -u "${lock_fd}"
+}
+
+function WriteStatistics() {
+    exec {lock_fd}>"${CURRENT_DIR}/jjr_stat.lock"
+    flock "${lock_fd}"
+
+    echo "UPTIMEDAYS=$1" > "${CURRENT_DIR}/statistics.txt"
+    echo "UPTIMEHOURS=$2" >> "${CURRENT_DIR}/statistics.txt"
+    echo "UPTIMEMINUTES=$3" >> "${CURRENT_DIR}/statistics.txt"
+    echo "UPTIMESECONDS=$4" >> "${CURRENT_DIR}/statistics.txt"
+    echo "UPTIMEMILLIS=$5" >> "${CURRENT_DIR}/statistics.txt"
+    echo "FREEHEAP=$6" >> "${CURRENT_DIR}/statistics.txt"
+    echo "HTTPREQSENT=$7" >> "${CURRENT_DIR}/statistics.txt"
+    echo "HTTPREQCOMMITED=$8" >> "${CURRENT_DIR}/statistics.txt"
+    echo "HTTPREQFAILED=$9" >> "${CURRENT_DIR}/statistics.txt"
+    echo "STATDATETIME=\"$( /bin/date '+%F %T' )\"" >> "${CURRENT_DIR}/statistics.txt"
+
+    flock -u "${lock_fd}"
+}
+
+function ReadStatistics() {
+    exec {lock_fd}>"${CURRENT_DIR}/jjr_stat.lock"
+    flock -s "${lock_fd}"
+
+    if [ -f "${CURRENT_DIR}/statistics.txt" ]
+    then
+        source "${CURRENT_DIR}/statistics.txt"
+    else
+        UPTIMEDAYS=-1
+        UPTIMEHOURS=-1
+        UPTIMEMINUTES=-1
+        UPTIMESECONDS=-1
+        UPTIMEMILLIS=-1
+        FREEHEAP=-1
+        HTTPREQSENT=-1
+        HTTPREQCOMMITED=-1
+        HTTPREQFAILED=-1
     fi
 
     flock -u "${lock_fd}"

@@ -49,9 +49,9 @@ case "${CMD}" in
         ;;
 
     'add_value' )
+        MAC="$( getParam 'mac' '' )"
         COLD="$( getParam 'cold' '-1' )"
         HOT="$( getParam 'hot' '-1' )"
-        MAC="$( getParam 'mac' '' )"
 
         ReadSetupCounters
 
@@ -97,6 +97,29 @@ case "${CMD}" in
             ExecSQL "INSERT INTO hot_water(value) VALUES(${HOT})"
             echo "Записано в базу, горячая вода: ${HOT}"
         fi
+        ;;
+
+    'statistics' )
+        MAC="$( getParam 'mac' '' )"
+        UPTIMEDAYS="$( getParam 'uptime_days' '-1' )"
+        UPTIMEHOURS="$( getParam 'uptime_hours' '-1' )"
+        UPTIMEMINUTES="$( getParam 'uptime_minutes' '-1' )"
+        UPTIMESECONDS="$( getParam 'uptime_seconds' '-1' )"
+        UPTIMEMILLIS="$( getParam 'uptime_millis' '-1' )"
+        FREEHEAP="$( getParam 'free_heap' '-1' )"
+        HTTPREQSENT="$( getParam 'http_req_sent' '-1' )"
+        HTTPREQCOMMITED="$( getParam 'http_req_commited' '-1' )"
+        HTTPREQFAILED="$( getParam 'http_req_failed' '-1' )"
+
+        WriteStatistics "${UPTIMEDAYS}" \
+                        "${UPTIMEHOURS}" \
+                        "${UPTIMEMINUTES}" \
+                        "${UPTIMESECONDS}" \
+                        "${UPTIMEMILLIS}" \
+                        "${FREEHEAP}" \
+                        "${HTTPREQSENT}" \
+                        "${HTTPREQCOMMITED}" \
+                        "${HTTPREQFAILED}"
         ;;
 
     * )
