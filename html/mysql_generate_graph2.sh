@@ -50,7 +50,7 @@ NOW=$( /bin/date '+%F %T' )
 TABLE='cold_water'
 COLD_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.cold )"
 
-SQL_REQUEST="SELECT concat_ws('|', ${SELTIME}, MAX(value) - MIN(value)) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
+SQL_REQUEST="SELECT ${SELTIME} as sel_tm, '|', MAX(value) - (SELECT IFNULL(MAX(value), (SELECT MIN(value) from ${TABLE})) from ${TABLE} WHERE create_time < sel_tm) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
 
 ###################################################################
@@ -58,7 +58,7 @@ ExecSQL "${SQL_REQUEST}" > "${COLD_OUT_FILE}"
 TABLE='hot_water'
 HOT_OUT_FILE="$( /bin/mktemp --tmpdir='/tmp' pulser_data_XXXXXXXXXX.hot )"
 
-SQL_REQUEST="SELECT concat_ws('|', ${SELTIME}, MAX(value) - MIN(value)) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
+SQL_REQUEST="SELECT ${SELTIME} as sel_tm, '|', MAX(value) - (SELECT IFNULL(MAX(value), (SELECT MIN(value) from ${TABLE})) from ${TABLE} WHERE create_time < sel_tm) from ${TABLE} WHERE create_time BETWEEN DATE_SUB('${NOW}', INTERVAL ${HOURS} HOUR) and '${NOW}' GROUP BY ${GROUPBY} ORDER BY create_time"
 ExecSQL "${SQL_REQUEST}" > "${HOT_OUT_FILE}"
 
 ###################################################################
