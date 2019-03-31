@@ -21,8 +21,6 @@ function incrementHot() {
 }
 
 function makeRequest() {
-    date '+%F %T'
-
     (( HTTP_REQ_SENT++ ))
     exec 3>&1 
     HTTP_CODE="$( curl -sS -w '%{http_code}' -o >(cat >&3) "$1" 2>>"${CURRENT_DIR}/curl_debug.log" )"
@@ -46,19 +44,27 @@ function makeRequest() {
 
 while true
 do
-    incrementCold
-    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&cold=${COLD_VALUE}" &
-
-    incrementHot
-    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&hot=${HOT_VALUE}" &
+    date '+%F %T'
 
     incrementCold
-    incrementHot
-    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&cold=${COLD_VALUE}&hot=${HOT_VALUE}" &
+    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&cold=${COLD_VALUE}"
 
-    UPTIME_DAYS="$( uptime | perl -pe 's/^.*up (\d+) days,.*/$1/' )"
-    UPTIME_HOURS="$( uptime | perl -pe 's/^.*up \d+ days,\s+(\d+):\d+,.*/$1/' )"
-    UPTIME_MINUTES="$( uptime | perl -pe 's/^.*up \d+ days,\s+\d+:(\d+),.*/$1/' )"
+    incrementHot
+    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&hot=${HOT_VALUE}"
+
+    incrementCold
+    incrementHot
+    makeRequest "http://nanopi-fire3/jjrpulser/cmd.sh?cmd=add_value&mac=e4:6f:13:f3:bc:a6&cold=${COLD_VALUE}&hot=${HOT_VALUE}"
+
+    UPTIME_STR="$( uptime )"
+    UPTIME_DAYS="$( echo "${UPTIME_STR}" | perl -pe 's/^.*up (\d+) days,.*/$1/' )"
+    UPTIME_HOURS="$( echo "${UPTIME_STR}" | perl -pe 's/^.*up \d+ days,\s+(\d+):\d+,.*/$1/' )"
+    UPTIME_MINUTES="$( echo "${UPTIME_STR}" | perl -pe 's/^.*up \d+ days,\s+\d+:(\d+),.*/$1/' )"
+
+    [ "${UPTIME_HOURS}" = "${UPTIME_STR}" ] && UPTIME_HOURS='0'
+    [ "${UPTIME_MINUTES}" = "${UPTIME_STR}" ] && UPTIME_MINUTES="$( echo "${UPTIME_STR}" | perl -pe 's/^.*up \d+ days,\s+(\d+) min,.*/$1/' )"
+    [ "${UPTIME_MINUTES}" = "${UPTIME_STR}" ] && UPTIME_MINUTES='0'
+
     MEM_FREE="$( cat /proc/meminfo | fgrep 'MemFree:' | perl -pe 's/^MemFree:\s+(\d+)\s+kB.*/$1/' )"
 
     REQUEST="http://nanopi-fire3/jjrpulser/cmd.sh?cmd=statistics&mac=e4:6f:13:f3:bc:a6";
@@ -71,7 +77,7 @@ do
     REQUEST="${REQUEST}&http_req_sent=${HTTP_REQ_SENT}";
     REQUEST="${REQUEST}&http_req_commited=${HTTP_REQ_COMMITED}";
     REQUEST="${REQUEST}&http_req_failed=${HTTP_REQ_FAILED}";
-    makeRequest "${REQUEST}" &
+    makeRequest "${REQUEST}"
 
     echo
     sleep 15
