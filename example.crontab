@@ -1,0 +1,11 @@
+1-59/5 * * * * /var/www/html/jjrpulser/mysql_generate_graph.sh day
+1-59/5 * * * * /var/www/html/jjrpulser/mysql_generate_graph2.sh day
+
+3-59/15 * * * * /var/www/html/jjrpulser/mysql_generate_graph.sh week
+3-59/15 * * * * /var/www/html/jjrpulser/mysql_generate_graph2.sh week
+
+5 * * * * /var/www/html/jjrpulser/mysql_generate_graph.sh month
+5 * * * * /var/www/html/jjrpulser/mysql_generate_graph2.sh month
+
+0 3 * * * /var/www/html/jjrpulser/mysql_generate_graph.sh year
+0 3 * * * /var/www/html/jjrpulser/mysql_generate_graph2.sh year
