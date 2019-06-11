@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <export version="D">
   <design>
-    <source>/home/salieff/KiCad/jjrpulser.sch</source>
-    <date>Ср 01 май 2019 23:50:44</date>
+    <source>/home/salieff/Arduino/kicad/jjrpulser.sch</source>
+    <date>Вс 09 июн 2019 01:57:06</date>
     <tool>Eeschema 4.0.7</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -282,7 +282,7 @@
       <uri>/usr/share/kicad/library/conn.lib</uri>
     </library>
     <library logical="ESP8266">
-      <uri>/home/salieff/KiCad/ESP8266.lib</uri>
+      <uri>/home/salieff/Arduino/kicad/ESP8266.lib</uri>
     </library>
   </libraries>
   <nets>
