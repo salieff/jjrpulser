@@ -1,0 +1,27 @@
+Use
+
+1.)
+    Clone this archive to a convenient location on your computer. These are the commands I use on Linux to create a copy in ~/kicad/libraries/kicad-ESP8266:
+
+    mkdir -p ~/kicad/libraries/
+    cd ~/kicad/libraries/
+    git clone https://github.com/jdunmire/kicad-ESP8266
+
+2.)
+    Add ESP8266.lib to the Component Libraries:
+
+    eeschema:Preferences->Component Libraries->Add
+
+3.)
+    Add ESP8266.pretty to the Footprint Libraries:
+
+    pcbnew:Preferences->Footprint Libraries Wizard
+
+4.)
+    To make the 3d models usable, add the location from step #1 to list of configured paths as ESPLIB. Use a full path. Continuing with the example step #1:
+
+    kicad:Preferences->Configure Paths->Add
+
+        Name: ESPLIB
+        Path: /home/<your_login_name>/kicad/libraries/kicad-ESP8266
+
