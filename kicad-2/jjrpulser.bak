@@ -419,10 +419,6 @@ $EndComp
 Wire Wire Line
 	6600 4100 6600 4400
 Wire Wire Line
-	6600 3600 7950 3600
-Wire Wire Line
-	6600 3500 7950 3500
-Wire Wire Line
 	4350 3700 4800 3700
 Wire Wire Line
 	4350 3500 4800 3500
@@ -430,8 +426,6 @@ Wire Wire Line
 	4800 3500 4800 2700
 Wire Wire Line
 	4800 2700 7950 2700
-Wire Wire Line
-	7950 2700 7950 3300
 Wire Wire Line
 	6600 4000 6800 4000
 Wire Wire Line
@@ -618,4 +612,47 @@ $EndComp
 Wire Wire Line
 	4500 3800 4500 3500
 Connection ~ 4500 3500
+$Comp
+L R R14
+U 1 1 5D0C1CEE
+P 7950 3150
+F 0 "R14" V 8030 3150 50  0000 C CNN
+F 1 "470" V 7950 3150 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 7880 3150 50  0001 C CNN
+F 3 "" H 7950 3150 50  0001 C CNN
+	1    7950 3150
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7950 2700 7950 3000
+$Comp
+L R R12
+U 1 1 5D0C1EF1
+P 7350 3500
+F 0 "R12" V 7430 3500 50  0000 C CNN
+F 1 "470" V 7350 3500 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 7280 3500 50  0001 C CNN
+F 3 "" H 7350 3500 50  0001 C CNN
+	1    7350 3500
+	0    -1   -1   0   
+$EndComp
+$Comp
+L R R13
+U 1 1 5D0C1FC2
+P 7350 3600
+F 0 "R13" V 7430 3600 50  0000 C CNN
+F 1 "470" V 7350 3600 50  0000 C CNN
+F 2 "Resistors_SMD:R_0805_HandSoldering" V 7280 3600 50  0001 C CNN
+F 3 "" H 7350 3600 50  0001 C CNN
+	1    7350 3600
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	6600 3500 7200 3500
+Wire Wire Line
+	7500 3500 7950 3500
+Wire Wire Line
+	6600 3600 7200 3600
+Wire Wire Line
+	7500 3600 7950 3600
 $EndSCHEMATC
