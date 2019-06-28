@@ -362,47 +362,25 @@ F 3 "" H 3450 3600 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L Screw_Terminal_01x02 J4
-U 1 1 5CBBAB1E
-P 7150 2250
-F 0 "J4" H 7150 2350 50  0000 C CNN
-F 1 "Screw_Terminal_COLD" H 7150 2050 50  0000 C CNN
-F 2 "Connectors_Terminal_Blocks:TerminalBlock_Pheonix_MPT-2.54mm_2pol" H 7150 2250 50  0001 C CNN
-F 3 "" H 7150 2250 50  0001 C CNN
-	1    7150 2250
-	0    -1   -1   0   
-$EndComp
-$Comp
-L Screw_Terminal_01x02 J3
-U 1 1 5CBBDEAC
-P 6650 2250
-F 0 "J3" H 6650 2350 50  0000 C CNN
-F 1 "Screw_Terminal_HOT" H 6650 2050 50  0000 C CNN
-F 2 "Connectors_Terminal_Blocks:TerminalBlock_Pheonix_MPT-2.54mm_2pol" H 6650 2250 50  0001 C CNN
-F 3 "" H 6650 2250 50  0001 C CNN
-	1    6650 2250
-	0    -1   -1   0   
-$EndComp
-$Comp
 L Earth #PWR015
 U 1 1 5CBC9513
-P 7250 2450
-F 0 "#PWR015" H 7250 2200 50  0001 C CNN
-F 1 "Earth" H 7250 2300 50  0001 C CNN
-F 2 "" H 7250 2450 50  0001 C CNN
-F 3 "" H 7250 2450 50  0001 C CNN
-	1    7250 2450
+P 7100 2450
+F 0 "#PWR015" H 7100 2200 50  0001 C CNN
+F 1 "Earth" H 7100 2300 50  0001 C CNN
+F 2 "" H 7100 2450 50  0001 C CNN
+F 3 "" H 7100 2450 50  0001 C CNN
+	1    7100 2450
 	1    0    0    -1  
 $EndComp
 $Comp
 L Earth #PWR016
 U 1 1 5CBC956E
-P 6650 2450
-F 0 "#PWR016" H 6650 2200 50  0001 C CNN
-F 1 "Earth" H 6650 2300 50  0001 C CNN
-F 2 "" H 6650 2450 50  0001 C CNN
-F 3 "" H 6650 2450 50  0001 C CNN
-	1    6650 2450
+P 6800 2450
+F 0 "#PWR016" H 6800 2200 50  0001 C CNN
+F 1 "Earth" H 6800 2300 50  0001 C CNN
+F 2 "" H 6800 2450 50  0001 C CNN
+F 3 "" H 6800 2450 50  0001 C CNN
+	1    6800 2450
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -468,7 +446,7 @@ U 1 1 5D018F0F
 P 2300 3750
 F 0 "C1" H 2325 3850 50  0000 L CNN
 F 1 "10mkF 16v" V 2325 3650 50  0000 R CNN
-F 2 "Capacitors_SMD:CP_Elec_6.3x5.3" H 2338 3600 50  0001 C CNN
+F 2 "Capacitors_Tantalum_SMD:CP_Tantalum_Case-A_EIA-3216-18_Reflow" H 2338 3600 50  0001 C CNN
 F 3 "" H 2300 3750 50  0001 C CNN
 	1    2300 3750
 	1    0    0    -1  
@@ -476,12 +454,12 @@ $EndComp
 $Comp
 L Earth #PWR018
 U 1 1 5D018FC9
-P 1800 3900
-F 0 "#PWR018" H 1800 3650 50  0001 C CNN
-F 1 "Earth" H 1800 3750 50  0001 C CNN
-F 2 "" H 1800 3900 50  0001 C CNN
-F 3 "" H 1800 3900 50  0001 C CNN
-	1    1800 3900
+P 1800 3700
+F 0 "#PWR018" H 1800 3450 50  0001 C CNN
+F 1 "Earth" H 1800 3550 50  0001 C CNN
+F 2 "" H 1800 3700 50  0001 C CNN
+F 3 "" H 1800 3700 50  0001 C CNN
+	1    1800 3700
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -503,7 +481,7 @@ U 1 1 5D019148
 P 3200 3750
 F 0 "C2" H 3225 3850 50  0000 L CNN
 F 1 "22mkF 5v" V 3225 3650 50  0000 R CNN
-F 2 "Capacitors_SMD:CP_Elec_6.3x5.3" H 3238 3600 50  0001 C CNN
+F 2 "Capacitors_Tantalum_SMD:CP_Tantalum_Case-A_EIA-3216-18_Reflow" H 3238 3600 50  0001 C CNN
 F 3 "" H 3200 3750 50  0001 C CNN
 	1    3200 3750
 	1    0    0    -1  
@@ -541,17 +519,6 @@ F 1 "PWR_FLAG" V 2100 3750 50  0000 L CNN
 F 2 "" H 2100 3600 50  0001 C CNN
 F 3 "" H 2100 3600 50  0001 C CNN
 	1    2100 3600
-	1    0    0    -1  
-$EndComp
-$Comp
-L Conn_Coaxial_Power J1
-U 1 1 5D07B797
-P 1800 3700
-F 0 "J1" V 1600 3650 50  0000 C CNN
-F 1 "Conn_Coaxial_Power" V 1675 3650 50  0000 C CNN
-F 2 "Connectors_TE-Connectivity:BNC_Socket_TYCO-AMP_LargePads" H 1800 3650 50  0001 C CNN
-F 3 "" H 1800 3650 50  0001 C CNN
-	1    1800 3700
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -668,10 +635,6 @@ F 3 "" H 5700 3800 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6750 2750 6750 2450
-Wire Wire Line
-	7150 2750 7150 2450
-Wire Wire Line
 	6450 3050 6750 3050
 Wire Wire Line
 	7150 3050 7400 3050
@@ -679,4 +642,42 @@ Wire Wire Line
 	6750 3050 6750 3700
 Wire Wire Line
 	7150 3800 7150 3050
+Text Label 6800 2200 1    60   ~ 0
+GND
+Text Label 6900 2200 1    60   ~ 0
+HOT
+Text Label 7000 2200 1    60   ~ 0
+COLD
+Text Label 7100 2200 1    60   ~ 0
+GND
+Wire Wire Line
+	6750 2750 6900 2750
+Wire Wire Line
+	6900 2750 6900 2450
+Wire Wire Line
+	7150 2750 7000 2750
+Wire Wire Line
+	7000 2750 7000 2450
+$Comp
+L Conn_01x04_Male J2
+U 1 1 5D154AC3
+P 7000 2250
+F 0 "J2" H 7000 2450 50  0000 C CNN
+F 1 "Hot&Cold Terminal" H 7000 1896 50  0000 C CNN
+F 2 "Connectors_JST:JST_PH_S4B-PH-K_04x2.00mm_Angled" H 7000 2250 50  0001 C CNN
+F 3 "" H 7000 2250 50  0001 C CNN
+	1    7000 2250
+	0    1    1    0   
+$EndComp
+$Comp
+L Conn_01x02_Male J1
+U 1 1 5D156AD5
+P 1600 3600
+F 0 "J1" H 1600 3700 50  0000 C CNN
+F 1 "5V Input" V 1502 3600 50  0000 C CNN
+F 2 "Connectors_JST:JST_PH_S2B-PH-K_02x2.00mm_Angled" H 1600 3600 50  0001 C CNN
+F 3 "" H 1600 3600 50  0001 C CNN
+	1    1600 3600
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
