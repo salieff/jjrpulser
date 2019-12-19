@@ -30,6 +30,11 @@
 #include <FS.h>
 // #include <LittleFS.h>
 
+#include "blinker.h"
+
+Blinker greenBlinker(GREEN_LED_PIN_NUMBER);
+Blinker redBlinker(RED_LED_PIN_NUMBER);
+
 FS* filesystem = &SPIFFS;
 // FS* filesystem = &LittleFS;
 
@@ -212,6 +217,42 @@ void handleFileList() {
     server.send(200, "text/json", output);
 }
 
+Blinker & getBlinkerByName(String name)
+{
+    if (name == "green")
+        return greenBlinker;
+
+    return redBlinker;
+}
+
+Blinker::Mode getBlinkerModeByName(String name) {
+    if (name == "off")
+        return Blinker::Off;
+
+    if (name == "work")
+        return Blinker::Work;
+
+    if (name == "data")
+        return Blinker::Data;
+
+    if (name == "setup")
+        return Blinker::Setup;
+
+    return Blinker::Error;
+}
+
+void handleLEDMode() {
+    if (!server.hasArg("color") || !server.hasArg("mode")) {
+        server.send(500, "text/plain", "BAD ARGS");
+        return;
+    }
+
+    getBlinkerByName(server.arg("color")).setMode(getBlinkerModeByName(server.arg("mode")));
+    DBG_OUTPUT_PORT.println(server.arg("color") + " = " + server.arg("mode"));
+
+    server.send(200);
+}
+
 void setup(void) {
     DBG_OUTPUT_PORT.begin(115200);
     DBG_OUTPUT_PORT.print("\n");
@@ -250,6 +291,8 @@ void setup(void) {
 
 
     //SERVER INIT
+    //manage leds modes
+    server.on("/ledmode", HTTP_GET, handleLEDMode);
     //list directory
     server.on("/list", HTTP_GET, handleFileList);
     //load editor
@@ -290,9 +333,17 @@ void setup(void) {
     server.begin();
     DBG_OUTPUT_PORT.println("HTTP server started");
 
+    greenBlinker.setup();
+    redBlinker.setup();
+
+    greenBlinker.setMode(Blinker::Work);
+    redBlinker.setMode(Blinker::Error);
 }
 
 void loop(void) {
     server.handleClient();
     MDNS.update();
+
+    greenBlinker.work();
+    redBlinker.work();
 }

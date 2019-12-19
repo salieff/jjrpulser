@@ -60,6 +60,21 @@ function capitalizeFLetter(string) {
     return string[0].toUpperCase() + string.slice(1);
 }
 
+function ledModeChanged(event) {
+    var radioButton = event.target;
+    if (!radioButton.checked)
+        return;
+
+    var xh = new XMLHttpRequest();
+    xh.open("GET", "/ledmode?color=" + radioButton.parentElement.dataset.color + "&mode=" + radioButton.value, true);
+    xh.onreadystatechange = function() {
+        if (xh.readyState == 4 && xh.status != 200)
+                alert("Can't send " + "/ledmode?color=" + radioButton.parentElement.dataset.color + "&mode=" + radioButton.value + "\nError: " + xh.responseText + " (" + xh.status +")");
+    };
+
+    xh.send(null);
+}
+
 function fillLEDModeBlock(container) {
     var color = container.dataset.color;
     var legend = document.createElement("legend");
@@ -74,6 +89,7 @@ function fillLEDModeBlock(container) {
         radioButton.id = color + "ledmode" + mode.toLowerCase();
         radioButton.name = color + "ledmode";
         radioButton.value = mode.toLowerCase();
+        radioButton.addEventListener("change", ledModeChanged);
 
         var label = document.createElement("label");
         label.htmlFor = radioButton.id;
