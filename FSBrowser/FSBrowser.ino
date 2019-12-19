@@ -30,6 +30,7 @@
 #include <FS.h>
 // #include <LittleFS.h>
 
+#include "passwords.h"
 #include "blinker.h"
 
 Blinker greenBlinker(GREEN_LED_PIN_NUMBER);
@@ -39,11 +40,6 @@ FS* filesystem = &SPIFFS;
 // FS* filesystem = &LittleFS;
 
 #define DBG_OUTPUT_PORT Serial
-
-#ifndef STASSID
-#define STASSID "MotherTiamat"
-#define STAPSK  "MardukMarduk"
-#endif
 
 const char* ssid = STASSID;
 const char* password = STAPSK;

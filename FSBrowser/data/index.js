@@ -66,7 +66,7 @@ function ledModeChanged(event) {
         return;
 
     var xh = new XMLHttpRequest();
-    xh.open("GET", "/ledmode?color=" + radioButton.parentElement.dataset.color + "&mode=" + radioButton.value, true);
+    xh.open("GET", "/ledmode?color=" + radioButton.dataset.color + "&mode=" + radioButton.value, true);
     xh.onreadystatechange = function() {
         if (xh.readyState == 4 && xh.status != 200)
                 alert("Can't send " + "/ledmode?color=" + radioButton.parentElement.dataset.color + "&mode=" + radioButton.value + "\nError: " + xh.responseText + " (" + xh.status +")");
@@ -89,6 +89,7 @@ function fillLEDModeBlock(container) {
         radioButton.id = color + "ledmode" + mode.toLowerCase();
         radioButton.name = color + "ledmode";
         radioButton.value = mode.toLowerCase();
+        radioButton.dataset.color = color;
         radioButton.addEventListener("change", ledModeChanged);
 
         var label = document.createElement("label");
