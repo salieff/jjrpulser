@@ -33,8 +33,8 @@
 #include "passwords.h"
 #include "blinker.h"
 
-Blinker greenBlinker(GREEN_LED_PIN_NUMBER);
-Blinker redBlinker(RED_LED_PIN_NUMBER);
+Blinker greenBlinker(GREEN_LED_PIN_NUMBER, "green");
+Blinker redBlinker(RED_LED_PIN_NUMBER, "red");
 
 FS* filesystem = &SPIFFS;
 // FS* filesystem = &LittleFS;
