@@ -8,14 +8,15 @@ const Blinker::BlinkTimes Blinker::m_blinkTimers[Blinker::MaxMode] = {
     {500, 500, 0, Blinker::Off}  // Error
 };
 
-Blinker::Blinker(uint8_t p, const char *n, TCallbackFunction f)
+Blinker::Blinker(uint8_t p, const char *n, TCallbackFunction f, void *ua)
     : m_pinNumber(p)
     , m_pinName(n)
-    , m_callbackFunction(f)
     , m_lastTimestamp(0)
     , m_fullTimestamp(0)
     , m_subMode(LOW)
     , m_currentMode(Off)
+    , m_callbackFunction(f)
+    , m_callbackUserArgument(ua)
 {
 }
 
@@ -72,10 +73,11 @@ void Blinker::setMode(Mode m)
     m_subMode = LOW;
     digitalWrite(m_pinNumber, LOW);
 
-    if (m_callbackFunction)
-        m_callbackFunction(*this, m_currentMode, m);
-
+    Blinker::Mode oldMode = m_currentMode;
     m_currentMode = m;
+
+    if (m_callbackFunction)
+        m_callbackFunction(*this, oldMode, m_currentMode, m_callbackUserArgument);
 }
 
 void Blinker::setMode(String m)
@@ -83,7 +85,7 @@ void Blinker::setMode(String m)
     setMode(Blinker::string2Mode(m));
 }
 
-Mode Blinker::string2Mode(String m)
+Blinker::Mode Blinker::string2Mode(String m)
 {
     if (m == "off")
         return Blinker::Off;
@@ -100,7 +102,7 @@ Mode Blinker::string2Mode(String m)
     return Blinker::Error;
 }
 
-String Blinker::mode2String(Mode m)
+String Blinker::mode2String(Blinker::Mode m)
 {
     switch(m)
     {
@@ -116,9 +118,14 @@ String Blinker::mode2String(Mode m)
         case Blinker::Setup :
             return "setup";
 
-        case Blinker::Error :
-            return "error";
+        default :
+            break;
     }
 
     return "error";
+}
+
+const String & Blinker::name() const
+{
+    return m_pinName;
 }

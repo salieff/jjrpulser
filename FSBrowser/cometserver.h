@@ -10,9 +10,15 @@ public:
     void setup();
     void work();
 
+    void onSubscribe();
+    void postEvent(String e);
+
 private:
+    void finalizeAndSend(WiFiClient &client);
+
     ESP8266WebServer m_server;
     String m_payload;
+    bool m_needHandleClient;
 };
 
 #endif // JJR_COMET_SERVER_H

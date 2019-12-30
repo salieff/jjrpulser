@@ -105,6 +105,40 @@ function fillLEDModeBlock(container) {
     });
 }
 
+function parseEvent(evt) {
+    if (evt.command != "ledmode")
+        return;
+
+    var radioButton = document.getElementById(evt.color + "ledmode" + evt.mode);
+    if (radioButton.checked)
+        return;
+
+    radioButton.removeEventListener("change", ledModeChanged);
+    radioButton.checked = true;
+    radioButton.addEventListener("change", ledModeChanged);
+}
+
+function subscribeToComet() {
+    var cometUrl = window.location.protocol + "//" + window.location.hostname + ":81/subscribe";
+
+    var xh = new XMLHttpRequest();
+    xh.onreadystatechange = function() {
+        if (xh.readyState == 4) {
+            if (xh.status == 200) {
+                var res = JSON.parse(xh.responseText);
+                res.events.forEach(parseEvent);
+            } else {
+                alert("Comet error: " + xh.responseText + " (" + xh.status +")");
+            }
+
+            subscribeToComet();
+        }
+    };
+
+    xh.open("GET", cometUrl, true);
+    xh.send(null);
+}
+
 function onBodyLoad() {
     var refreshInput = document.getElementById("refresh-rate");
     refreshInput.value = reloadPeriod;
@@ -136,5 +170,6 @@ function onBodyLoad() {
 
     Array.from(document.getElementsByClassName("ledmode")).forEach(fillLEDModeBlock);
 
+    subscribeToComet();
     run();
 }

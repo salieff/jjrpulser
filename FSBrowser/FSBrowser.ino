@@ -28,16 +28,13 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
-// #include <LittleFS.h>
 
 #include "passwords.h"
 #include "blinker.h"
+#include "cometserver.h"
 
-Blinker greenBlinker(GREEN_LED_PIN_NUMBER, "green");
-Blinker redBlinker(RED_LED_PIN_NUMBER, "red");
 
 FS* filesystem = &SPIFFS;
-// FS* filesystem = &LittleFS;
 
 #define DBG_OUTPUT_PORT Serial
 
@@ -46,8 +43,18 @@ const char* password = STAPSK;
 const char* host = "esp8266fs";
 
 ESP8266WebServer server(80);
+CometServer cometServer(81);
+
 //holds the current upload
 File fsUploadFile;
+
+void blinkerEvent(Blinker &blinker, Blinker::Mode, Blinker::Mode, void *)
+{
+    cometServer.postEvent("{\"command\": \"ledmode\", \"color\": \"" + blinker.name() + "\", \"mode\": \"" + blinker.modeName() +"\"}");
+}
+
+Blinker greenBlinker(GREEN_LED_PIN_NUMBER, "green", blinkerEvent);
+Blinker redBlinker(RED_LED_PIN_NUMBER, "red", blinkerEvent);
 
 //format bytes
 String formatBytes(size_t bytes) {
@@ -97,6 +104,9 @@ bool handleFileRead(String path) {
     DBG_OUTPUT_PORT.println("handleFileRead: " + path);
     if (path.endsWith("/")) {
         path += "index.htm";
+
+        blinkerEvent(greenBlinker, Blinker::MaxMode, Blinker::MaxMode, nullptr);
+        blinkerEvent(redBlinker, Blinker::MaxMode, Blinker::MaxMode, nullptr);
     }
     String contentType = getContentType(path);
     String pathWithGz = path + ".gz";
@@ -221,29 +231,13 @@ Blinker & getBlinkerByName(String name)
     return redBlinker;
 }
 
-Blinker::Mode getBlinkerModeByName(String name) {
-    if (name == "off")
-        return Blinker::Off;
-
-    if (name == "work")
-        return Blinker::Work;
-
-    if (name == "data")
-        return Blinker::Data;
-
-    if (name == "setup")
-        return Blinker::Setup;
-
-    return Blinker::Error;
-}
-
 void handleLEDMode() {
     if (!server.hasArg("color") || !server.hasArg("mode")) {
         server.send(500, "text/plain", "BAD ARGS");
         return;
     }
 
-    getBlinkerByName(server.arg("color")).setMode(getBlinkerModeByName(server.arg("mode")));
+    getBlinkerByName(server.arg("color")).setMode(server.arg("mode"));
     DBG_OUTPUT_PORT.println(server.arg("color") + " = " + server.arg("mode"));
 
     server.send(200);
@@ -266,6 +260,8 @@ void setup(void) {
 
 
     //WIFI INIT
+    WiFi.hostname(host);
+    
     DBG_OUTPUT_PORT.printf("Connecting to %s\n", ssid);
     if (String(WiFi.SSID()) != String(ssid)) {
         WiFi.mode(WIFI_STA);
@@ -329,6 +325,8 @@ void setup(void) {
     server.begin();
     DBG_OUTPUT_PORT.println("HTTP server started");
 
+    cometServer.setup();
+
     greenBlinker.setup();
     redBlinker.setup();
 
@@ -339,6 +337,8 @@ void setup(void) {
 void loop(void) {
     server.handleClient();
     MDNS.update();
+
+    cometServer.work();
 
     greenBlinker.work();
     redBlinker.work();

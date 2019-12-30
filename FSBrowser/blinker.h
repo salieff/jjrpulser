@@ -18,9 +18,9 @@ public:
         MaxMode
     };
 
-    typedef std::function<void(Blinker &, Mode, Mode)> TCallbackFunction;
+    typedef std::function<void(Blinker &, Mode, Mode, void *)> TCallbackFunction;
 
-    Blinker(uint8_t p, const char *n, TCallbackFunction f = m_emptyFunction);
+    Blinker(uint8_t p, const char *n = nullptr, TCallbackFunction f = m_emptyFunction, void *ua = nullptr);
 
     void setup();
     void work();
@@ -28,6 +28,7 @@ public:
     String modeName() const;
     void setMode(Mode m);
     void setMode(String m);
+    const String & name() const;
 
 private:
     struct BlinkTimes {
@@ -48,6 +49,7 @@ private:
 
     static TCallbackFunction m_emptyFunction;
     TCallbackFunction m_callbackFunction;
+    void *m_callbackUserArgument;
 
     static Mode string2Mode(String m);
     static String mode2String(Mode m);
