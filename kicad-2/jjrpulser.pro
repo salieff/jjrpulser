@@ -1,4 +1,4 @@
-update=Ср 09 янв 2019 01:59:32
+update=Пн 13 янв 2020 19:34:54
 version=1
 last_client=kicad
 [pcbnew]
@@ -62,3 +62,4 @@ LibName30=atmel
 LibName31=contrib
 LibName32=valves
 LibName33=ESP8266
+LibName34=Inductors

@@ -61,6 +61,6 @@ void loop()
 
     // Debug routines
     processConsoleInput(&greenBlinker, &redBlinker);
-    testSend();
+    // testSend();
     // delay(50);
 }
