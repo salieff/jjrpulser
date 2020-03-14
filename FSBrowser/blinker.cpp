@@ -64,7 +64,7 @@ String Blinker::modeName() const
     return mode2String(m_currentMode);
 }
 
-void Blinker::setMode(Mode m)
+void Blinker::setMode(Mode m, bool suppressCallback)
 {
     if (m_currentMode == m)
         return;
@@ -76,13 +76,16 @@ void Blinker::setMode(Mode m)
     Blinker::Mode oldMode = m_currentMode;
     m_currentMode = m;
 
+    if (suppressCallback)
+        return;
+
     if (m_callbackFunction)
         m_callbackFunction(*this, oldMode, m_currentMode, m_callbackUserArgument);
 }
 
-void Blinker::setMode(String m)
+void Blinker::setMode(String m, bool suppressCallback)
 {
-    setMode(Blinker::string2Mode(m));
+    setMode(Blinker::string2Mode(m), suppressCallback);
 }
 
 Blinker::Mode Blinker::string2Mode(String m)

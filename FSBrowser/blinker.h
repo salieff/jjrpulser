@@ -26,8 +26,8 @@ public:
     void work();
     Mode mode() const;
     String modeName() const;
-    void setMode(Mode m);
-    void setMode(String m);
+    void setMode(Mode m, bool suppressCallback = false);
+    void setMode(String m, bool suppressCallback = false);
     const String & name() const;
 
 private:

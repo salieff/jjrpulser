@@ -237,7 +237,7 @@ void handleLEDMode() {
         return;
     }
 
-    getBlinkerByName(server.arg("color")).setMode(server.arg("mode"));
+    getBlinkerByName(server.arg("color")).setMode(server.arg("mode"), true);
     DBG_OUTPUT_PORT.println(server.arg("color") + " = " + server.arg("mode"));
 
     server.send(200);
@@ -261,7 +261,7 @@ void setup(void) {
 
     //WIFI INIT
     WiFi.hostname(host);
-    
+
     DBG_OUTPUT_PORT.printf("Connecting to %s\n", ssid);
     if (String(WiFi.SSID()) != String(ssid)) {
         WiFi.mode(WIFI_STA);
