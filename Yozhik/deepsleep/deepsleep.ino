@@ -85,7 +85,7 @@ void setup()
     Note that using internal pullups/pulldowns also requires
     RTC peripherals to be turned on.
     */
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 1); //1 = High, 0 = Low
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_32, 1); //1 = High, 0 = Low
 
     //If you were to use ext1, you would use it like
     //esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
